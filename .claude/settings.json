@@ -1,0 +1,52 @@
+{
+  "autoCompactEnabled": true,
+  "model": "claude-sonnet-4-6",
+
+  "permissions": {
+    "allow": [
+      "Bash(*docker run*)",
+      "Bash(*docker exec*)",
+      "Bash(*docker logs*)",
+      "Bash(*sed*)",
+      "Bash(*awk*)",
+      "Bash(*grep*)",
+      "Bash(*cat*)",
+      "Bash(*tail*)",
+      "Bash(*head*)",
+      "Bash(*jq*)",
+      "Bash(*curl*)",
+      "Bash(*git*)",
+      "Bash(*./build.sh*)",
+      "Bash(*./deploy.sh*)",
+      "Bash(*./build_overlay.sh*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(**docker run**)",
+      "Bash(**docker logs**)",
+      "Write(./context/switch-client/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v rtk >/dev/null 2>&1; then rtk hook claude; else cat; fi"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "path=$(jq -r '.tool_input.file_path'); if [ -f \"$path\" ] && [ $(wc -l < \"$path\") -gt 300 ]; then echo \"ERROR: $path exceeds 300 lines! Split this file immediately.\"; exit 1; fi; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "context-mode": {
+      "command": "node",
+      "args": ["/home/ke/.nvm/versions/node/v22.17.0/lib/node_modules/context-mode/start.mjs"],
+      "env": {
+        "NODE_NO_WARNINGS": "1"
+      }
+    }
+  }
+}
