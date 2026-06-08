@@ -1,0 +1,8 @@
+services:
+  test-sysmodule:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.test-cpp
+    volumes:
+      - .:/app
+    working_dir: /app

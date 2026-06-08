@@ -1,0 +1,26 @@
+# Build artifacts
+build-cpp-tests/
+build-overlay-tests/
+coverage-cpp.xml
+sysmodule/build/
+sysmodule/*.nsp
+sysmodule/*.nro
+sysmodule/*.elf
+sysmodule/*.nso
+sysmodule/*.npdm
+overlay/build/
+overlay/*.elf
+overlay/*.ovl
+overlay/*.nacp
+
+# Config / secrets
+.env
+.env.local
+
+# Claude Code local settings
+.claude/settings.local.json
+.claude/context
+
+# OS
+.DS_Store
+Thumbs.db

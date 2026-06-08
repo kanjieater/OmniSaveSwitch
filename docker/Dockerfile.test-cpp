@@ -1,0 +1,38 @@
+FROM ubuntu:24.04
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    gcovr \
+    python3-pip \
+    python3-venv \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m venv /opt/venv && /opt/venv/bin/pip install diff-cover
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Allow git to operate on /app even when the volume is owned by another UID.
+RUN git config --global --add safe.directory '*'
+
+WORKDIR /app
+
+CMD ["bash", "-c", \
+  "mkdir -p /app/build-cpp-tests \
+  && cd /app/build-cpp-tests \
+  && cmake -DBUILD_TESTING=ON -DCOVERAGE=ON /app/sysmodule/tests \
+  && make -j$(nproc) \
+  && ctest --output-on-failure \
+  && mkdir -p /app/build-overlay-tests \
+  && cd /app/build-overlay-tests \
+  && cmake -DBUILD_TESTING=ON -DCOVERAGE=ON /app/overlay/tests \
+  && make -j$(nproc) \
+  && ctest --output-on-failure \
+  && gcovr --xml-pretty -o /app/coverage-cpp.xml \
+       --root /app \
+       --filter '.*/sysmodule/source/.*' --filter '.*/overlay/source/.*' \
+       /app/build-cpp-tests/CMakeFiles/omni_core.dir \
+       /app/build-overlay-tests/CMakeFiles/overlay_parsers.dir \
+  && diff-cover /app/coverage-cpp.xml \
+       --compare-branch=origin/main \
+       --fail-under=100"]
