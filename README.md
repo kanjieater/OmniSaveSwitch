@@ -201,7 +201,11 @@ The sysmodule uses `/switch/omnisave/` for all its files:
 
 **5 GB save size limit**
 
-Saves larger than 5 GB cannot be uploaded or synced. This covers the vast majority of titles, but a handful of games with large world data — Minecraft, LEGO Worlds, Dragon Quest Builders — can approach or exceed this in some configurations. If a save hits the limit the sysmodule will skip it and log `UPLOAD_TOO_LARGE`.
+Saves larger than 5 GB cannot be uploaded or synced. 99% of Switch titles have saves well under a few MB. A small number of games with large world data reach several GB — Minecraft tops out around 4.4 GB, others like NBA 2K18 can exceed 5 GB and will hit this limit. If a save is over the limit the sysmodule will skip it and log `UPLOAD_TOO_LARGE`.
+
+**Large saves take a while to upload**
+
+Upload speed depends on your network. On a typical home LAN a 500 MB save takes under a minute. Uploading to a server over the internet at 2 MB/s takes about 4 minutes for 500 MB, or roughly 35 minutes for a 4 GB save. The upload happens in the background after you close the game, so it won't interrupt play, but the next device won't receive the save until the transfer completes.
 
 **~3 MB memory footprint**
 
