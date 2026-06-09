@@ -20,7 +20,7 @@
 
 #define CHECKPOINT_SIZE  (4  * 1024 * 1024)   // 4 MB — xxHash32 granularity
 #define WINDOW_SIZE      (64 * 1024 * 1024)   // 64 MB — HTTP transport granularity
-#define MAX_CHECKPOINTS  256                   // max 1 GB saves
+#define MAX_CHECKPOINTS  1280                  // max 5 GB saves
 
 // ── V2 checkpoint ledger ───────────────────────────────────────────────────────
 

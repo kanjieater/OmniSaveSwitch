@@ -199,6 +199,10 @@ The sysmodule uses `/switch/omnisave/` for all its files:
 
 ## Known Limitations
 
+**5 GB save size limit**
+
+Saves larger than 5 GB cannot be uploaded or synced. This covers the vast majority of titles, but a handful of games with large world data — Minecraft, LEGO Worlds, Dragon Quest Builders — can approach or exceed this in some configurations. If a save hits the limit the sysmodule will skip it and log `UPLOAD_TOO_LARGE`.
+
 **~3 MB memory footprint**
 
 The sysmodule uses approximately 3 MB of system RAM while running. This is on the larger side for a background sysmodule. If you run many sysmodules simultaneously and experience instability, try disabling non-essential ones to rule out memory pressure.
