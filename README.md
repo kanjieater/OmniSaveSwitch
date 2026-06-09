@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="./assets/omnisave.png" alt="OmniSave" width="160">
+  <img src="./assets/omnisave.png" alt="OmniSave" height="120">
+  &nbsp;&nbsp;
+  <img src="./assets/plus.svg" alt="+" height="60">
+  &nbsp;&nbsp;
+  <img src="./assets/switch.svg" alt="Nintendo Switch" height="120">
 </p>
 
 <h1 align="center">OmniSaveSwitch</h1>
