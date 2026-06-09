@@ -3,9 +3,17 @@ name: Release Build
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag to build (e.g. v1.1.0)"
+        required: true
 
 permissions:
   contents: write
+
+env:
+  TAG_NAME: ${{ github.event.inputs.tag_name || github.ref_name }}
 
 jobs:
   build-sysmodule:
@@ -91,12 +99,12 @@ jobs:
           cp dist/overlay/omnisave.ovl      "pkg/switch/.overlays/OmniSave.ovl"
 
           cd pkg
-          zip -r "../OmniSave-${{ github.ref_name }}.zip" .
+          zip -r "../OmniSave-${{ env.TAG_NAME }}.zip" .
 
       - name: Upload to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "${{ github.ref_name }}" \
-            "OmniSave-${{ github.ref_name }}.zip" \
+          gh release upload "${{ env.TAG_NAME }}" \
+            "OmniSave-${{ env.TAG_NAME }}.zip" \
             --repo "${{ github.repository }}"
