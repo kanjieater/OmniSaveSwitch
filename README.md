@@ -27,6 +27,12 @@ An Ultrahand overlay lets you check sync status, see your last backup and restor
 
 ---
 
+<p align="center">
+  <video src="./assets/demo.mp4" autoplay loop muted playsinline width="700"></video>
+</p>
+
+---
+
 ## What You Get
 
 ### Without a server
