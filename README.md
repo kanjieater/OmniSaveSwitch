@@ -61,7 +61,7 @@ Everything above, plus:
 
 ### Sysmodule
 
-Copy the following files to your SD card:
+Download `OmniSave-vX.Y.Z.zip` from the [latest release](https://github.com/kanjieater/OmniSaveSwitch/releases/latest) and drag both folders onto the root of your SD card:
 
 ```
 atmosphere/
@@ -71,19 +71,20 @@ atmosphere/
         ├── toolbox.json    ← lets you start/stop it without rebooting
         └── flags/
             └── boot2.flag  ← auto-starts at boot
+switch/
+├── .overlays/
+│   └── OmniSave.ovl        ← the overlay binary
+└── omnisave/
+    └── config.ini          ← pre-populated default configuration
 ```
 
-All three files are in the release archive. After copying, cold boot your device.
-
-### Overlay
-
-Copy `OmniSave.ovl` to `/switch/.overlays/` on your SD card. It will appear in the Ultrahand overlay menu immediately — no reboot needed.
+After copying, edit `switch/omnisave/config.ini` to set your `server_address`, then cold boot your device.
 
 ---
 
 ## Configuration
 
-On first boot, the sysmodule creates `/switch/omnisave/config.ini` with the following defaults:
+The release archive includes a pre-populated `switch/omnisave/config.ini`. If the file is missing, the sysmodule creates it on first boot. Defaults:
 
 ```ini
 # OmniSave Configuration

@@ -92,11 +92,13 @@ jobs:
           TID="420000000000000C"
           mkdir -p pkg/atmosphere/contents/${TID}/flags
           mkdir -p "pkg/switch/.overlays"
+          mkdir -p pkg/switch/omnisave
 
           cp dist/sysmodule/exefs.nsp       pkg/atmosphere/contents/${TID}/exefs.nsp
           cp sysmodule/toolbox.json         pkg/atmosphere/contents/${TID}/toolbox.json
           touch                             pkg/atmosphere/contents/${TID}/flags/boot2.flag
           cp dist/overlay/omnisave.ovl      "pkg/switch/.overlays/OmniSave.ovl"
+          cp dist/config.ini                pkg/switch/omnisave/config.ini
 
           cd pkg
           zip -r "../OmniSave-${{ env.TAG_NAME }}.zip" .
