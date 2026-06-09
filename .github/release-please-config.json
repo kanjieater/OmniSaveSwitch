@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "extra-files": [
+        "VERSION",
+        {
+          "type": "generic",
+          "path": "sysmodule/include/omnisave.h",
+          "regex": "^#define OMNISAVE_VERSION\\s+\"(?<version>[^\"]+)\""
+        },
+        {
+          "type": "generic",
+          "path": "overlay/Makefile",
+          "regex": "^APP_VERSION\\s*:=\\s*(?<version>.+)"
+        }
+      ]
+    }
+  }
+}

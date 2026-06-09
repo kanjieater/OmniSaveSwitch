@@ -1,0 +1,59 @@
+name: Crash Report
+description: OmniSave caused a crash or system freeze
+labels: ["bug", "sysmodule"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for crashes, freezes, or unexpected reboots linked to OmniSave.
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Switch firmware version
+      placeholder: "e.g. 18.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: omnisave-version
+    attributes:
+      label: OmniSave version
+      placeholder: "e.g. v1.0.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: What were you doing when the crash occurred?
+    validations:
+      required: true
+
+  - type: textarea
+    id: crash-log
+    attributes:
+      label: Crash log / fatal error output
+      render: text
+
+  - type: dropdown
+    id: data-loss
+    attributes:
+      label: Did this cause save data loss?
+      options:
+        - "No"
+        - "Yes — saves were corrupted or deleted"
+        - "Unsure"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues before filing this
+          required: true
+        - label: I have included the crash log or a description of the error
+          required: true

@@ -1,0 +1,47 @@
+- name: bug
+  color: "d73a4a"
+  description: Something isn't working
+
+- name: feature
+  color: "0075ca"
+  description: New capability or enhancement
+
+- name: security
+  color: "e4e669"
+  description: Security concern — use this label to report vulnerabilities
+
+- name: documentation
+  color: "0052cc"
+  description: Documentation-only change
+
+- name: good first issue
+  color: "7057ff"
+  description: Good for newcomers
+
+- name: help wanted
+  color: "008672"
+  description: Extra attention or community help welcome
+
+- name: p0
+  color: "b60205"
+  description: "Critical: save data loss or corruption"
+
+- name: p1
+  color: "e99695"
+  description: "High: crash or system instability"
+
+- name: p2
+  color: "f9d0c4"
+  description: "Normal: UI glitch or minor issue"
+
+- name: sysmodule
+  color: "d4c5f9"
+  description: Background sysmodule component
+
+- name: overlay
+  color: "bfd4f2"
+  description: Ultrahand overlay UI component
+
+- name: firmware-compat
+  color: "c5def5"
+  description: Switch firmware compatibility issue

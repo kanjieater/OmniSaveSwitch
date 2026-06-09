@@ -1,0 +1,33 @@
+name: Sysmodule Build
+
+on:
+  push:
+    paths:
+      - "sysmodule/**"
+      - ".github/workflows/sysmodule-ci.yml"
+  pull_request:
+    paths:
+      - "sysmodule/**"
+      - ".github/workflows/sysmodule-ci.yml"
+
+jobs:
+  build:
+    name: Build sysmodule
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build sysmodule image
+        run: docker build -t omnisave-sysmodule-builder ./sysmodule
+
+      - name: Compile sysmodule
+        run: docker run --rm -v "$(pwd)/sysmodule:/src" omnisave-sysmodule-builder make
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sysmodule-${{ github.sha }}
+          path: sysmodule/exefs.nsp
+          retention-days: 7

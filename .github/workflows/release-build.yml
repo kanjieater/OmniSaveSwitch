@@ -1,0 +1,85 @@
+name: Release Build
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-sysmodule:
+    name: Build sysmodule
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build sysmodule image
+        run: docker build -t omnisave-sysmodule-builder ./sysmodule
+
+      - name: Compile sysmodule
+        run: docker run --rm -v "$(pwd)/sysmodule:/src" omnisave-sysmodule-builder make
+
+      - name: Upload sysmodule artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sysmodule
+          path: sysmodule/exefs.nsp
+          retention-days: 30
+
+  build-overlay:
+    name: Build overlay
+    runs-on: ubuntu-latest
+    env:
+      LIBTESLA_COMMIT: f766e9b607a05e9756843cbd62b3bfb98be1646c
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Fetch libtesla headers
+        run: |
+          mkdir -p overlay/include
+          curl -fsSL "https://raw.githubusercontent.com/WerWolv/libtesla/${LIBTESLA_COMMIT}/include/tesla.hpp" \
+            -o overlay/include/tesla.hpp
+          curl -fsSL "https://raw.githubusercontent.com/WerWolv/libtesla/${LIBTESLA_COMMIT}/include/stb_truetype.h" \
+            -o overlay/include/stb_truetype.h
+
+      - name: Build overlay image
+        run: docker build -t omnisave-overlay-builder ./overlay
+
+      - name: Compile overlay
+        run: docker run --rm -v "$(pwd)/overlay:/src" omnisave-overlay-builder make
+
+      - name: Upload overlay artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: overlay
+          path: overlay/omnisave.ovl
+          retention-days: 30
+
+  attach-to-release:
+    name: Attach artifacts to release
+    runs-on: ubuntu-latest
+    needs: [build-sysmodule, build-overlay]
+    steps:
+      - name: Download sysmodule
+        uses: actions/download-artifact@v4
+        with:
+          name: sysmodule
+
+      - name: Download overlay
+        uses: actions/download-artifact@v4
+        with:
+          name: overlay
+
+      - name: Upload to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            exefs.nsp \
+            omnisave.ovl \
+            --repo "${{ github.repository }}"

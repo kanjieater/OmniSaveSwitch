@@ -1,0 +1,43 @@
+name: Overlay Build
+
+on:
+  push:
+    paths:
+      - "overlay/**"
+      - ".github/workflows/overlay-ci.yml"
+  pull_request:
+    paths:
+      - "overlay/**"
+      - ".github/workflows/overlay-ci.yml"
+
+jobs:
+  build:
+    name: Build overlay
+    runs-on: ubuntu-latest
+    env:
+      LIBTESLA_COMMIT: f766e9b607a05e9756843cbd62b3bfb98be1646c
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Fetch libtesla headers
+        run: |
+          mkdir -p overlay/include
+          curl -fsSL "https://raw.githubusercontent.com/WerWolv/libtesla/${LIBTESLA_COMMIT}/include/tesla.hpp" \
+            -o overlay/include/tesla.hpp
+          curl -fsSL "https://raw.githubusercontent.com/WerWolv/libtesla/${LIBTESLA_COMMIT}/include/stb_truetype.h" \
+            -o overlay/include/stb_truetype.h
+
+      - name: Build overlay image
+        run: docker build -t omnisave-overlay-builder ./overlay
+
+      - name: Compile overlay
+        run: docker run --rm -v "$(pwd)/overlay:/src" omnisave-overlay-builder make
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: overlay-${{ github.sha }}
+          path: overlay/omnisave.ovl
+          retention-days: 7

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./overlay/omnisave.jpg" alt="OmniSave" width="160">
+  <img src="./assets/omnisave.png" alt="OmniSave" width="160">
 </p>
 
 <h1 align="center">OmniSaveSwitch</h1>
@@ -256,6 +256,20 @@ make
 ```
 
 The `build.sh` script in the repo root builds both.
+
+---
+
+## Support
+
+Community discussion on [KanjiEater's Discord](https://discord.com/invite/agbwB4p).
+
+<a href="https://youtube.com/c/kanjieater"><img src="https://github.com/gauravghongde/social-icons/blob/master/SVG/Color/Youtube.svg" height="50px" title="YouTube"></a>
+<a href="https://tr.ee/-TOCGozNUI" title="Twitter"><img src="https://github.com/gauravghongde/social-icons/blob/master/SVG/Color/Twitter.svg" height="50px"></a>
+<a href="https://discord.com/invite/agbwB4p" title="Discord"><img src="https://github.com/gauravghongde/social-icons/blob/master/SVG/Color/Discord.svg" height="50px"></a>
+
+If you find my tools useful please consider supporting via Patreon.
+
+<a href="https://www.patreon.com/kanjieater" rel="nofollow"><img src="https://i.imgur.com/VCTLqLj.png"></a>
 
 ---
 
