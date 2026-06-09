@@ -277,20 +277,7 @@ OmniSaveSwitch has two components: a background **sysmodule** (always running) a
 
 ### Sysmodule FSM
 
-```mermaid
-flowchart TD
-    IDLE -->|game closed, save ready| UPLOADING
-    IDLE -->|server has newer save| DOWNLOADING
-    UPLOADING -->|success| IDLE
-    UPLOADING -->|too large or no server| IDLE
-    UPLOADING -->|network error| RETRY_BACKOFF
-    RETRY_BACKOFF -->|expired| IDLE
-    DOWNLOADING -->|download complete| INBOUND_READY
-    DOWNLOADING -->|nothing or error| IDLE
-    INBOUND_READY -->|applying to filesystem| DELIVERING
-    INBOUND_READY -->|error| IDLE
-    DELIVERING -->|done| IDLE
-```
+![Sysmodule FSM](https://mermaid.ink/img/Zmxvd2NoYXJ0IFRECiAgICBJRExFIC0tPnxnYW1lIGNsb3NlZCwgc2F2ZSByZWFkeXwgVVBMT0FESU5HCiAgICBJRExFIC0tPnxzZXJ2ZXIgaGFzIG5ld2VyIHNhdmV8IERPV05MT0FESU5HCiAgICBVUExPQURJTkcgLS0-fHN1Y2Nlc3N8IElETEUKICAgIFVQTE9BRElORyAtLT58dG9vIGxhcmdlIG9yIG5vIHNlcnZlcnwgSURMRQogICAgVVBMT0FESU5HIC0tPnxuZXR3b3JrIGVycm9yfCBSRVRSWV9CQUNLT0ZGCiAgICBSRVRSWV9CQUNLT0ZGIC0tPnxleHBpcmVkfCBJRExFCiAgICBET1dOTE9BRElORyAtLT58ZG93bmxvYWQgY29tcGxldGV8IElOQk9VTkRfUkVBRFkKICAgIERPV05MT0FESU5HIC0tPnxub3RoaW5nIG9yIGVycm9yfCBJRExFCiAgICBJTkJPVU5EX1JFQURZIC0tPnxhcHBseWluZyB0byBmaWxlc3lzdGVtfCBERUxJVkVSSU5HCiAgICBJTkJPVU5EX1JFQURZIC0tPnxlcnJvcnwgSURMRQogICAgREVMSVZFUklORyAtLT58ZG9uZXwgSURMRQ==)
 
 ### Data flow (with server)
 
