@@ -1,6 +1,6 @@
-<table align="center"><tr>
+<table align="center" border="0" cellspacing="0" cellpadding="12"><tr>
   <td align="center" valign="middle"><img src="./assets/omnisave.png" alt="OmniSave" height="120"></td>
-  <td align="center" valign="middle"><b>&nbsp;+&nbsp;</b></td>
+  <td align="center" valign="middle"><b>+</b></td>
   <td align="center" valign="middle"><img src="./assets/switch.svg" alt="Nintendo Switch" height="120"></td>
 </tr></table>
 
