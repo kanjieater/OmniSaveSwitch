@@ -60,26 +60,43 @@ jobs:
           path: overlay/omnisave.ovl
           retention-days: 30
 
-  attach-to-release:
-    name: Attach artifacts to release
+  package-and-release:
+    name: Package and attach to release
     runs-on: ubuntu-latest
     needs: [build-sysmodule, build-overlay]
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download sysmodule
         uses: actions/download-artifact@v4
         with:
           name: sysmodule
+          path: dist/sysmodule
 
       - name: Download overlay
         uses: actions/download-artifact@v4
         with:
           name: overlay
+          path: dist/overlay
+
+      - name: Assemble SD card layout
+        run: |
+          TID="420000000000000C"
+          mkdir -p pkg/atmosphere/contents/${TID}/flags
+          mkdir -p "pkg/switch/.overlays"
+
+          cp dist/sysmodule/exefs.nsp       pkg/atmosphere/contents/${TID}/exefs.nsp
+          cp sysmodule/toolbox.json         pkg/atmosphere/contents/${TID}/toolbox.json
+          touch                             pkg/atmosphere/contents/${TID}/flags/boot2.flag
+          cp dist/overlay/omnisave.ovl      "pkg/switch/.overlays/OmniSave.ovl"
+
+          cd pkg
+          zip -r "../OmniSave-${{ github.ref_name }}.zip" .
 
       - name: Upload to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ github.ref_name }}" \
-            exefs.nsp \
-            omnisave.ovl \
+            "OmniSave-${{ github.ref_name }}.zip" \
             --repo "${{ github.repository }}"
