@@ -1,114 +1,262 @@
-# <p align="center"><img src="./assets/omnisave.png" alt="OmniSave Logo" width="180"></p>
+<p align="center">
+  <img src="./overlay/omnisave.jpg" alt="OmniSave" width="160">
+</p>
 
-# OmniSave
+<h1 align="center">OmniSaveSwitch</h1>
 
-If you play games across multiple devices, you've likely run into this problem: You play on your primary device. Later, you pick up a secondary handheld. The save on the handheld is older. Now you have to remember which device has the newest progress, or manually transfer files. 
+<p align="center">
+  The background sync client for <a href="https://github.com/kanjieater/OmniSaveServer">OmniSave</a>. Runs on custom firmware, syncing your saves automatically whenever you close a game.
+</p>
 
-OmniSave is a self-hosted save synchronization platform built for messy reality: offline play, multiple devices, crashes, and interrupted transfers. When a save changes on one device, OmniSave automatically backs up the old version, sets the new upload as the active version, and distributes it to your other devices.
+<p align="center">
+  <a href="#requirements">Requirements</a> ·
+  <a href="#installation">Installation</a> ·
+  <a href="#configuration">Configuration</a> ·
+  <a href="#pairing-your-device">Pairing</a> ·
+  <a href="#the-overlay">Overlay</a> ·
+  <a href="#building-from-source">Building</a>
+</p>
 
-```mermaid
-flowchart TD
-    A[Handheld A] -->|Uploads save| B(OmniSave Server)
-    B -->|Distributes save| C[Handheld B]
-    B -->|Distributes save| D[(RomM)]
+---
+
+OmniSaveSwitch runs silently in the background as a sysmodule. Every time you close a game, it extracts the save and keeps a local copy on your SD card — no configuration required, no server needed.
+
+If you connect it to an [OmniSave Server](https://github.com/kanjieater/OmniSaveServer), the local copies are uploaded and distributed to your other devices automatically, and the SD card copies are cleaned up so they don't accumulate. The server also gives you cross-device sync, a full version history, and a web dashboard.
+
+An Ultrahand overlay lets you check sync status, see your last backup and restore, and trigger a full backup from the home screen.
+
+---
+
+## What You Get
+
+### Without a server
+
+- **Local save backups, automatically.** Every time you close a game, the sysmodule extracts the save and stores it on your SD card. No setup beyond installing the sysmodule.
+- **Batch backup from the home screen.** The overlay's "Backup All" action queues a full extraction of every installed game's saves at once.
+
+### With an OmniSave Server
+
+Everything above, plus:
+
+- **Saves sync to your other devices.** The local copies are uploaded to the server and distributed automatically — no manual transfers.
+- **No duplicate accumulation on your SD card.** Without a server, extracted saves stay on the card indefinitely. With a server, they're uploaded and cleaned up.
+- **Every version is kept on the server.** The server keeps a full history; the card stays tidy.
+- **Saves download automatically.** When another device uploads a newer save, it's restored here before the game launches next time.
+- **Multiple profiles on one device.** Each in-game player profile has its own save slot on the server. Saves go to and from the right account without any manual mapping.
+- **SysNAND/EmuNAND aware.** If you run both environments, a single config option makes them register as separate devices on the server so their saves don't conflict. (Primarily tested on SysNAND.)
+- **Sleep-aware.** A pending upload pauses before the device goes to sleep and resumes on wake.
+- **No impact on gameplay.** Uploads happen entirely in the background over your local network.
+
+---
+
+## Requirements
+
+- Custom firmware running [Atmosphère](https://github.com/Atmosphere-NX/Atmosphere)
+- [Ultrahand](https://github.com/ppkantorski/Ultrahand-Overlay) for the overlay and notifications
+- *(Optional)* An [OmniSave Server](https://github.com/kanjieater/OmniSaveServer) — needed for cross-device sync and remote version history
+
+---
+
+## Installation
+
+### Sysmodule
+
+Copy the following files to your SD card:
+
+```
+atmosphere/
+└── contents/
+    └── 420000000000000C/
+        ├── exefs.nsp       ← the sysmodule binary
+        ├── toolbox.json    ← lets you start/stop it without rebooting
+        └── flags/
+            └── boot2.flag  ← auto-starts at boot
+```
+
+All three files are in the release archive. After copying, cold boot your device.
+
+### Overlay
+
+Copy `OmniSave.ovl` to `/switch/.overlays/` on your SD card. It will appear in the Ultrahand overlay menu immediately — no reboot needed.
+
+---
+
+## Configuration
+
+On first boot, the sysmodule creates `/switch/omnisave/config.ini` with the following defaults:
+
+```ini
+# OmniSave Configuration
+server_address=
+device_token=
+nickname=
+verbose_notifications=0
+device_suffix=
+```
+
+Edit the file to point at your server and set a nickname. The `device_token` is filled in automatically after pairing — you don't need to set it manually.
+
+| Key | Description |
+|---|---|
+| `server_address` | Full URL of your OmniSave server (e.g. `http://192.168.1.10:8991`). Supports `http://` and `https://`. |
+| `device_token` | Set automatically after pairing. Do not edit manually. |
+| `nickname` | Optional label sent to the server on first registration. The server uses it as the default device name. |
+| `verbose_notifications` | Set to `1` to also receive notifications for conflict and sweep events (default `0`). |
+| `verify_tls` | Set to `0` if your server uses a self-signed certificate. |
+| `device_suffix` | Optional. Appended to the device ID to distinguish environments (e.g. `device_suffix=emu` for EmuNAND). |
+
+### SysNAND and EmuNAND
+
+If you run both SysNAND and EmuNAND, each needs its own `config.ini` with a different `device_suffix`. Without it, both environments report the same device ID and their saves will conflict on the server.
+
+Typical setup:
+
+- SysNAND `config.ini`: leave `device_suffix` empty
+- EmuNAND `config.ini`: `device_suffix=emu`
+
+---
+
+## Pairing Your Device
+
+The first time the sysmodule connects to your server, it generates a 6-character pairing code and displays it in the overlay. To complete pairing:
+
+1. Open the Ultrahand menu and launch the OmniSave overlay.
+2. The pairing code appears at the top of the overlay.
+3. Open the OmniSave web dashboard → **Devices** → **Add Device**.
+4. Enter the code shown in the overlay.
+5. The device receives its token automatically on its next poll.
+
+After pairing, the code disappears from the overlay and syncing begins automatically. You can rename the device and assign a default player profile from the dashboard at any time.
+
+---
+
+## The Overlay
+
+<p align="center">
+  <img src="./assets/overlay-status.png" alt="OmniSave overlay showing sync status" width="480">
+</p>
+
+Open the Ultrahand menu and select OmniSave. The overlay shows:
+
+**Current Status** — what the sysmodule is doing right now:
+
+| Status | Meaning |
+|---|---|
+| Up to Date | Idle — no pending uploads or downloads |
+| Backing Up | Uploading a save, with game name and progress % |
+| Downloading | Fetching a save from the server |
+| Applying Save | Writing a downloaded save to the save file system |
+| Network Issue | Upload failed; retrying automatically |
+| Paused: Storage Full | SD card is over 95% full — sync paused |
+
+**Last Backup / Last Restore** — the most recent save event: game name, timestamp, save version number, and which user account it belongs to. When a game is running, these sections show the history for that specific game. From the home screen, they show the most recent event overall.
+
+**Actions** (home screen only) — **Backup All (Slow)** triggers a full backup of every installed game's saves. Runs in the background; the sysmodule works through them one at a time. This is only available when no game is running because save extraction requires the save file system to be unlocked.
+
+**Errors** — any sync errors that need attention. Errors can be cleared from the OmniSave web dashboard.
+
+**Recent Events** — the last 10 sync events with timestamps.
+
+---
+
+## SD Card Layout
+
+The sysmodule uses `/switch/omnisave/` for all its files:
+
+```
+/switch/omnisave/
+├── config.ini          ← your configuration
+├── state/
+│   ├── status.json     ← live FSM state (read by overlay)
+│   ├── pairing.json    ← pairing code (cleared after pairing)
+│   ├── last_backup.json
+│   ├── last_restore.json
+│   └── events.json
+├── signals/
+│   └── batch_backup.request   ← written by overlay to trigger batch backup
+└── errors/             ← one file per error; cleared via dashboard
 ```
 
 ---
 
-### Key Behaviors
+## Known Limitations
 
-OmniSave is a self-hosted save synchronization and backup platform designed to solve this. When a save changes on one device, OmniSave automatically distributes it to your other devices so they are always up to date.
+**~3 MB memory footprint**
 
-The goal is simple: The newest save syncs automatically, but every previous version is backed up. You never lose a save, even if one gets overwritten.
+The sysmodule uses approximately 3 MB of system RAM while running. This is on the larger side for a background sysmodule. If you run many sysmodules simultaneously and experience instability, try disabling non-essential ones to rule out memory pressure.
 
-### What OmniSave Does
+**Saves only upload when a game fully closes**
 
-At a high level:
+The sysmodule detects a game closing by watching for the game process to exit. Putting the device to sleep while a game is still running does not trigger a save extraction — the upload happens when you actually close the game. If the device crashes or powers off while a game is open, the current session's save will not be backed up.
 
-1. A save changes on one device.
-2. The local client detects the change.
-3. The save is uploaded to your OmniSave server.
-4. The server archives the previous save and sets the new upload as the current active version.
-5. Other registered devices receive the update automatically.
-6. You continue playing exactly where you left off.
+**Concurrent play on two devices — last close wins**
 
-If something goes wrong—or if you just want to go back in time—you can easily select any older save from the server and push it back to your devices.
+If the same game is open on two devices at the same time, the last device to close the game becomes the new active version on the server. When device A uploads a save, device B receives it. If device B later closes the game, it uploads its own version (which may reflect older progress), and that overwrites device A's upload.
 
-### Features
+*Workaround:* From the server dashboard, open the game's snapshot history and push the version you want back to the appropriate device.
 
-* **Automatic Save Synchronization:** Keep save data perfectly synced between multiple hardware devices (e.g., Handheld ↔ Handheld, multiple family consoles, travel ↔ home).
-* **Comprehensive Version Control:** It's not just that the new save wins. Older saves are automatically backed up. If a save gets overwritten or corrupted, you can effortlessly push an older version to your devices. You never lose a save.
-* **Self-Hosted:** You run the server yourself. Your save data stays under your control. Deploys easily via Docker, Docker Compose, NAS, or a VPS.
-* **Multi-User Support:** Multiple users can share the same OmniSave server instance. Each user maintains their own synchronization state, registered devices, and save ownership.
-* **Save History & Auditing:** OmniSave tracks all save transactions and synchronization states. You can inspect sync activity, diagnose failures, and manage your backups through the web UI.
-* **RomM Integration:** OmniSave can synchronize directly with RomM. This allows save data to be shared between active clients and a RomM-managed library without requiring manual exports.
+**Without a server, backups accumulate on your SD card**
+
+When running without a server, extracted saves are stored in `/switch/omnisave/outbound/` and never cleaned up automatically. On a large library with frequent play this directory can grow significantly over time. Connecting a server causes uploads to be cleaned up after they're confirmed received.
 
 ---
 
-### Architecture
+## Troubleshooting
 
-This repository contains the **OmniSave Server**. It runs on your hardware (Docker host, NAS, VPS) and acts as the central authority. It does not execute game code or read local memory; it strictly manages files, versions, and sync states.
+**Pairing code never appears**
 
-The server manages uploads in idempotent chunks, verifies integrity before committing, and coordinates distribution to other devices via leases.
+The sysmodule hasn't been able to reach the server. Check:
+- `server_address` in `config.ini` is set and correct.
+- The server is running and reachable from the device's network.
+- If using `https://`, try `verify_tls=0` if the server uses a self-signed cert.
 
----
+**Overlay shows "Sysmodule offline"**
 
-### Clients & Roadmap
+The sysmodule isn't running. Confirm the sysmodule files are in the right place and that `boot2.flag` exists. Cold boot the device.
 
-OmniSave is completely client-agnostic. The protocol is an open REST API, allowing for clients to be developed independently. 
+**Saves upload but never arrive on other devices**
 
-**Current Clients:**
-* **Official Client (Custom Firmware):** A sysmodule that watches saves and moves files on console hardware.
-* **REST API:** Fully documented for custom scripts.
+Check the dashboard on the server — the save should appear in the game's history. If delivery to a specific device is stuck, use Dashboard → Devices → (device) → Errors to retry, or use Restore All after re-pairing.
 
-**Roadmap:**
-* PC client (Playnite integration)
-* Emulator support natively via the PC client
-* Experimental cross-device save conversion
-* Data Retention Automation - game level, global defaults in settings
+**Device appears twice on the server**
 
----
+This usually means `device_suffix` changed between runs, or the device ID was regenerated (e.g., after a nand restore). Pair the device again and use Restore All to re-queue all saves.
 
-### Project Status
+**Batch Backup runs slowly**
 
-OmniSave is under active development. 
-
-The primary focus is **correctness and reliability**. Features are added only after synchronization behavior is proven to be safe and predictable. Because irreplaceable save data is involved, avoiding corruption takes priority over feature velocity. 
-
-**Tech Stack:**
-* Backend: Python (FastAPI)
-* Database: SQLite
-* Dashboard: React
-* Integrations: Optional RomM integration
+That's expected — it's labeled "Backup All (Slow)" because it works through every installed game sequentially, extracting and uploading each one. Let it run in the background.
 
 ---
 
-### Installation
+## Building from Source
 
-*Documentation stubs – links to be added*
+### Requirements
 
-* **Server Setup Guide** (Docker/Compose instructions)
-* **Client Setup**
-* **Managing and Restoring Backups**
-* **RomM Integration Guide**
+- [devkitPro](https://devkitpro.org/) with libnx installed
+- [Ultrahand](https://github.com/ppkantorski/Ultrahand-Overlay) headers for the overlay
 
+### Sysmodule
 
-# License 
+```bash
+cd sysmodule
+make
+# Output: exefs.nsp (copied automatically from OmniSave.nsp)
+```
 
-OmniSave uses a split licensing model to balance open ecosystem growth with sustainable infrastructure development.
+### Overlay
 
-Client Software (Sysmodule, UI, SDK)
+```bash
+cd overlay
+make
+# Output: omnisave.ovl
+```
 
-Licensed under the MIT License.
+The `build.sh` script in the repo root builds both.
 
-You are free to use, modify, distribute, and integrate the client software into other applications, including homebrew projects, with minimal restrictions.
+---
 
-Server Software
+## License
 
-Licensed under the GNU Affero General Public License v3.0 (AGPLv3).
+OmniSaveSwitch is licensed under the [MIT License](LICENSE-MIT) — use, modify, and distribute freely.
 
-You are free to self-host the OmniSave server for personal or internal use. If you modify the server and provide it as a network-accessible service, the AGPLv3 requires you to make the modified server source code available under the same license.
-
-OmniSave Cloud (Official Hosting)
-
-The official managed OmniSave cloud service is a proprietary commercial offering operated by the OmniSave project maintainers.
+The server counterpart, [OmniSaveServer](https://github.com/kanjieater/OmniSaveServer), is licensed under AGPLv3.
