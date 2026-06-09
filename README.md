@@ -88,6 +88,8 @@ switch/
 
 After copying, edit `switch/omnisave/config.ini` to set your `server_address`, then start the sysmodule.
 
+> **Back up your saves first.** Before enabling OmniSave for the first time, use [JKSV](https://github.com/J-D-K/JKSV) to export a full backup of your saves to your SD card. OmniSave is designed to be safe, but having an independent backup before any new save tool touches your data is good practice.
+
 ### First launch
 
 The sysmodule won't be running yet after copying the files. You have two options:
@@ -205,7 +207,7 @@ Saves larger than 5 GB cannot be uploaded or synced. 99% of Switch titles have s
 
 **Large saves take a while to upload**
 
-Upload speed depends on your network. On a typical home LAN a 500 MB save takes under a minute. Uploading to a server over the internet at 2 MB/s takes about 4 minutes for 500 MB, or roughly 35 minutes for a 4 GB save. The upload happens in the background after you close the game, so it won't interrupt play, but the next device won't receive the save until the transfer completes.
+Upload speed depends on your network. On a typical home LAN a 500 MB save takes under a minute. Uploading to a server over the internet at 2 MB/s takes about 4 minutes for 500 MB, or roughly 35 minutes for a 4 GB save. For reference, Breath of the Wild is about 6 MB (a few seconds), New Pokémon Snap is around 500 MB (about 4 minutes at 2 MB/s), and Minecraft can reach 4.4 GB (over 30 minutes). The upload happens in the background after you close the game so it won't interrupt play, but the next device won't receive the save until the transfer completes.
 
 **~3 MB memory footprint**
 
