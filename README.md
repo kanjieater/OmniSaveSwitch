@@ -1,8 +1,8 @@
-<p align="center">
-  <img src="./assets/omnisave.png" alt="OmniSave" height="120">
-  &nbsp;&nbsp;➕&nbsp;&nbsp;
-  <img src="./assets/switch.svg" alt="Nintendo Switch" height="120">
-</p>
+<table align="center"><tr>
+  <td align="center" valign="middle"><img src="./assets/omnisave.png" alt="OmniSave" height="120"></td>
+  <td align="center" valign="middle"><b>&nbsp;+&nbsp;</b></td>
+  <td align="center" valign="middle"><img src="./assets/switch.svg" alt="Nintendo Switch" height="120"></td>
+</tr></table>
 
 <h1 align="center">OmniSaveSwitch</h1>
 
