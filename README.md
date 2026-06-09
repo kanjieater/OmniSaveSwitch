@@ -242,6 +242,10 @@ Homebrew applications don't expose a standard title ID and don't use the system 
 
 When running without a server, extracted saves are stored in `/switch/omnisave/outbound/` and never cleaned up automatically. On a large library with frequent play this directory can grow significantly over time. Connecting a server causes uploads to be cleaned up after they're confirmed received.
 
+**Shared server with multiple users — saves deliver across users**
+
+If multiple people share an OmniSave server and each has the same game installed on their Switch, a save uploaded by one user fans out to all devices in the server's catalog with that game — including devices belonging to other users. This is a current server-side limitation. For isolated save histories, each person should run their own OmniSave server.
+
 ---
 
 ## Troubleshooting
