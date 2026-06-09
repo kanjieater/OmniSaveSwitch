@@ -280,17 +280,17 @@ OmniSaveSwitch has two components: a background **sysmodule** (always running) a
 ```mermaid
 stateDiagram-v2
     [*] --> IDLE
-    IDLE --> UPLOADING : game closed, outbound save ready
-    IDLE --> DOWNLOADING : server reports newer save available
+    IDLE --> UPLOADING : game closed, save ready
+    IDLE --> DOWNLOADING : server has newer save
     UPLOADING --> IDLE : uploaded successfully
-    UPLOADING --> IDLE : save too large / no server configured
+    UPLOADING --> IDLE : too large or no server
     UPLOADING --> RETRY_BACKOFF : network error
     RETRY_BACKOFF --> IDLE : backoff expired
     DOWNLOADING --> INBOUND_READY : download complete
-    DOWNLOADING --> IDLE : nothing found / error
-    INBOUND_READY --> DELIVERING : applying save to filesystem
+    DOWNLOADING --> IDLE : nothing found or error
+    INBOUND_READY --> DELIVERING : applying to filesystem
     INBOUND_READY --> IDLE : error reading save
-    DELIVERING --> IDLE : applied successfully / error
+    DELIVERING --> IDLE : done
 ```
 
 ### Data flow (with server)
