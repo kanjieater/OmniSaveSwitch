@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.1](https://github.com/kanjieater/OmniSaveSwitch/compare/v1.2.0...v1.2.1) (2026-06-09)
+
+
+### Bug Fixes
+
+* convert stateDiagram-v2 to flowchart TD for reliable GitHub rendering ([2ab171d](https://github.com/kanjieater/OmniSaveSwitch/commit/2ab171d8781cee954c23526206cef40929b9751a))
+* remove slash and special chars from stateDiagram-v2 labels ([118e97b](https://github.com/kanjieater/OmniSaveSwitch/commit/118e97bbe5876bf601fdf1ebb480970e98313f37))
+* replace mermaid block with mermaid.ink pre-rendered image ([86079e8](https://github.com/kanjieater/OmniSaveSwitch/commit/86079e8637fb6d98298a2d3f97a58002cb103125))
+
 ## [1.2.0](https://github.com/kanjieater/OmniSaveSwitch/compare/v1.1.0...v1.2.0) (2026-06-09)
 
 
