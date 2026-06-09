@@ -1,7 +1,7 @@
 <p align="center">
   <img src="./assets/omnisave.png" alt="OmniSave" height="120">
   &nbsp;&nbsp;
-  <img src="./assets/plus.svg" alt="+" height="60">
+  <img src="./assets/plus.svg" alt="+" height="60" style="vertical-align: middle">
   &nbsp;&nbsp;
   <img src="./assets/switch.svg" alt="Nintendo Switch" height="120">
 </p>
