@@ -195,6 +195,10 @@ If the same game is open on two devices at the same time, the last device to clo
 
 *Workaround:* From the server dashboard, open the game's snapshot history and push the version you want back to the appropriate device.
 
+**Homebrew apps are not backed up**
+
+Homebrew applications don't expose a standard title ID and don't use the system save filesystem, so the sysmodule has no way to identify them or extract their saves. Only retail games with a proper title ID are backed up. If a homebrew app stores data on the SD card directly (outside the save filesystem), that data is outside OmniSave's scope entirely.
+
 **Without a server, backups accumulate on your SD card**
 
 When running without a server, extracted saves are stored in `/switch/omnisave/outbound/` and never cleaned up automatically. On a large library with frequent play this directory can grow significantly over time. Connecting a server causes uploads to be cleaned up after they're confirmed received.
