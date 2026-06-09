@@ -271,6 +271,36 @@ That's expected — it's labeled "Backup All (Slow)" because it works through ev
 
 ---
 
+## Architecture
+
+OmniSaveSwitch has two components: a background **sysmodule** (always running) and an **Ultrahand overlay** (on-demand UI). The sysmodule drives all save activity through a single FSM loop.
+
+### Sysmodule FSM
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+    IDLE --> UPLOADING : game closed, outbound save ready
+    IDLE --> DOWNLOADING : server reports newer save available
+    UPLOADING --> IDLE : uploaded successfully
+    UPLOADING --> IDLE : save too large / no server configured
+    UPLOADING --> RETRY_BACKOFF : network error
+    RETRY_BACKOFF --> IDLE : backoff expired
+    DOWNLOADING --> INBOUND_READY : download complete
+    DOWNLOADING --> IDLE : nothing found / error
+    INBOUND_READY --> DELIVERING : applying save to filesystem
+    INBOUND_READY --> IDLE : error reading save
+    DELIVERING --> IDLE : applied successfully / error
+```
+
+### Data flow (with server)
+
+On game close, the sysmodule packages the save into a ZIP and uploads it in 4 MB chunks. The server assembles, deduplicates, and queues the save for every other paired device. On the next poll (or sleep/wake), other devices download and restore it before the game next launches.
+
+Without a server, extracted saves accumulate in `/switch/omnisave/outbound/` on the SD card indefinitely.
+
+---
+
 ## Building from Source
 
 ### Requirements
