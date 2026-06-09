@@ -278,19 +278,18 @@ OmniSaveSwitch has two components: a background **sysmodule** (always running) a
 ### Sysmodule FSM
 
 ```mermaid
-stateDiagram-v2
-    [*] --> IDLE
-    IDLE --> UPLOADING : game closed, save ready
-    IDLE --> DOWNLOADING : server has newer save
-    UPLOADING --> IDLE : uploaded successfully
-    UPLOADING --> IDLE : too large or no server
-    UPLOADING --> RETRY_BACKOFF : network error
-    RETRY_BACKOFF --> IDLE : backoff expired
-    DOWNLOADING --> INBOUND_READY : download complete
-    DOWNLOADING --> IDLE : nothing found or error
-    INBOUND_READY --> DELIVERING : applying to filesystem
-    INBOUND_READY --> IDLE : error reading save
-    DELIVERING --> IDLE : done
+flowchart TD
+    IDLE -->|game closed, save ready| UPLOADING
+    IDLE -->|server has newer save| DOWNLOADING
+    UPLOADING -->|success| IDLE
+    UPLOADING -->|too large or no server| IDLE
+    UPLOADING -->|network error| RETRY_BACKOFF
+    RETRY_BACKOFF -->|expired| IDLE
+    DOWNLOADING -->|download complete| INBOUND_READY
+    DOWNLOADING -->|nothing or error| IDLE
+    INBOUND_READY -->|applying to filesystem| DELIVERING
+    INBOUND_READY -->|error| IDLE
+    DELIVERING -->|done| IDLE
 ```
 
 ### Data flow (with server)
