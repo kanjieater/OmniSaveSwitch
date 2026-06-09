@@ -86,7 +86,16 @@ switch/
     └── config.ini          ← pre-populated default configuration
 ```
 
-After copying, edit `switch/omnisave/config.ini` to set your `server_address`, then cold boot your device.
+After copying, edit `switch/omnisave/config.ini` to set your `server_address`, then start the sysmodule.
+
+### First launch
+
+The sysmodule won't be running yet after copying the files. You have two options:
+
+- **Without rebooting:** Open the Ultrahand menu → **Sysmodules** → find OmniSave → toggle it on. This hot-loads the sysmodule without a reboot and is the fastest way to start or stop it at any time.
+- **With a reboot:** Cold boot the device. The `boot2.flag` file tells Atmosphère to start the sysmodule automatically on every boot going forward.
+
+Once the sysmodule is running, open the OmniSave overlay in Ultrahand to confirm it's active.
 
 ---
 
@@ -131,7 +140,7 @@ The first time the sysmodule connects to your server, it generates a 6-character
 
 1. Open the Ultrahand menu and launch the OmniSave overlay.
 2. The pairing code appears at the top of the overlay.
-3. Open the OmniSave web dashboard → **Devices** → **Add Device**.
+3. Open the OmniSave web dashboard → **Settings** → **Pair a New Device**.
 4. Enter the code shown in the overlay.
 5. The device receives its token automatically on its next poll.
 
@@ -193,6 +202,10 @@ The sysmodule uses `/switch/omnisave/` for all its files:
 **~3 MB memory footprint**
 
 The sysmodule uses approximately 3 MB of system RAM while running. This is on the larger side for a background sysmodule. If you run many sysmodules simultaneously and experience instability, try disabling non-essential ones to rule out memory pressure.
+
+**Background activity increases battery drain**
+
+The sysmodule runs continuously and polls the network periodically while a server is configured. This does consume additional battery compared to running no sysmodules, though the impact in practice is small. If battery life is a concern — on a long trip without charging, for example — you can stop the sysmodule via the Ultrahand **Sysmodules** menu and re-enable it when you're back on your home network.
 
 **Saves only upload when a game fully closes**
 
