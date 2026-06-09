@@ -207,14 +207,14 @@ Saves larger than 5 GB cannot be uploaded or synced. 99% of Switch titles have s
 
 **Large saves take a while to upload**
 
-Upload speed depends on your network. The upload happens in the background after you close the game so it won't interrupt play, but the next device won't receive the save until the transfer completes.
+For typical saves the full round trip — close game on one device, save appears on another — targets around 10 seconds. The sysmodule uploads at up to ~2 MB/s, so larger saves take proportionally longer. The upload happens in the background after you close the game so it won't interrupt play, but the receiving device won't pick up the save until the transfer completes. If a device has gone into power-saving mode, sleep and wake it to trigger an immediate check-in with the server.
 
-| Game | Save size | LAN (50 MB/s) | Remote (2 MB/s) |
-|---|---|---|---|
-| Breath of the Wild | ~6 MB | < 1 sec | ~3 sec |
-| New Pokémon Snap | ~500 MB | ~10 sec | ~4 min |
-| Minecraft | up to 4.4 GB | ~90 sec | ~37 min |
-| NBA 2K18 | 5 GB+ | exceeds limit | exceeds limit |
+| Game | Save size | Time at 2 MB/s |
+|---|---|---|
+| Breath of the Wild | ~6 MB | ~3 sec |
+| New Pokémon Snap | ~500 MB | ~4 min |
+| Minecraft | up to 4.4 GB | ~37 min |
+| NBA 2K18 | 5 GB+ | exceeds limit |
 
 **~3 MB memory footprint**
 
