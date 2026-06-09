@@ -109,4 +109,5 @@ jobs:
         run: |
           gh release upload "${{ env.TAG_NAME }}" \
             "OmniSave-${{ env.TAG_NAME }}.zip" \
-            --repo "${{ github.repository }}"
+            --repo "${{ github.repository }}" \
+            --clobber
