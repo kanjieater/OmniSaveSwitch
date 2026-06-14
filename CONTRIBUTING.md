@@ -1,5 +1,13 @@
 # Contributing to OmniSaveSwitch
 
+## First-time setup
+
+After cloning, install the pre-commit hook that prevents committing a real server address in `dist/config.ini`:
+
+```bash
+ln -sf ../../scripts/pre-commit-checks.sh .git/hooks/pre-commit
+```
+
 ## Development environment
 
 ### Option A — Docker (recommended, no local toolchain needed)

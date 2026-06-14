@@ -1,0 +1,21 @@
+name: Config Guard
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check-config-template:
+    name: Verify dist/config.ini has no real server_address
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject non-empty server_address
+        run: |
+          addr=$(sed -n 's/^server_address=//p' dist/config.ini | tr -d '[:space:]')
+          if [ -n "$addr" ]; then
+            echo "ERROR: dist/config.ini must have a blank server_address in the repo."
+            echo "       This file is the release template — never commit a real address."
+            exit 1
+          fi
