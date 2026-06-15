@@ -456,6 +456,7 @@ int http_get_body(const char* url_path, char* resp_buf, int resp_sz) {
 
     int status = finish_curl(c, errbuf);
     curl_slist_free_all(hdrs);
+    if (wb.overflow) return -1;
     return status;
 }
 

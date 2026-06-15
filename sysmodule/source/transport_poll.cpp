@@ -229,14 +229,17 @@ static int download_transaction(FsFileSystem* sd, const DownloadState* ds,
 // ── transport_poll_inbound ─────────────────────────────────────────────────────
 
 int transport_poll_inbound(FsFileSystem* sd) {
-    // Queue body now includes sync_prefs, backup_updates, and game_names in addition
-    // to pending items with checkpoint ledgers.  64 KB gives comfortable headroom;
-    // cb_write_buf aborts with CURLE_WRITE_ERROR if even this is exceeded.
+    // Queue body is bounded by LIMIT 50 on the server; 64 KB is well above the ceiling.
+    // cb_write_buf sets overflow=true and http_get_body returns -1 if exceeded (POLL_RESPONSE_TOO_LARGE).
     static char queue_body[65536];
     char url[128];
     snprintf(url, sizeof(url), "/api/v1/sync/queue?sync_generation=%u",
              state_get_sync_generation());
     int status = http_get_body(url, queue_body, sizeof(queue_body));
+    if (status == -1) {
+        fs_log(sd, "POLL_RESPONSE_TOO_LARGE");
+        return 0;
+    }
     if (status == 401) {
         fs_log(sd, "POLL_AUTH_REJECTED");
         return -2;
