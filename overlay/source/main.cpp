@@ -13,6 +13,7 @@
 #define SIG_BATCH BASE "/signals/batch_backup.request"
 #define ERRORS    BASE "/errors"
 #define EVENTS    BASE "/state/events.json"
+#define CONFIG    BASE "/config.ini"
 
 // ── JSON helpers ───────────────────────────────────────────────────────────────
 
@@ -165,6 +166,22 @@ static int collect_events(EvEntry* out, int max) {
     return n;
 }
 
+static bool ini_str(const char* buf, const char* key, char* out, size_t sz) {
+    char needle[64];
+    snprintf(needle, sizeof(needle), "%s=", key);
+    const char* p = strstr(buf, needle);
+    if (!p) return false;
+    p += strlen(needle);
+    const char* end = p;
+    while (*end && *end != '\n' && *end != '\r') end++;
+    size_t len = (size_t)(end - p);
+    if (len == 0) return false;
+    if (len >= sz) len = sz - 1;
+    memcpy(out, p, len);
+    out[len] = '\0';
+    return true;
+}
+
 // ── FlexItem: collapses to zero height when text and value are both empty ──────
 
 class FlexItem : public tsl::elm::ListItem {
@@ -232,6 +249,7 @@ class OmniSaveGui : public tsl::Gui {
     EvEntry             m_ev[10]       = {};
     int                 m_ev_n         = 0;
     FlexItem*           m_ev_items[10] = {};
+    FlexItem*           m_srv         = nullptr;
 
     // ── Content helpers ──────────────────────────────────────────────────
 
@@ -425,6 +443,19 @@ public:
         for (int i = 0; i < 10; i++) {
             m_ev_items[i] = new FlexItem();
             m_list->addItem(m_ev_items[i]);
+        }
+
+        // ── Server (from config.ini — static, read once on open) ──────────────
+        {
+            char cfg_buf[4096] = {};
+            char srv_addr[256] = {};
+            if (slurp(CONFIG, cfg_buf, sizeof(cfg_buf)) &&
+                ini_str(cfg_buf, "server_address", srv_addr, sizeof(srv_addr))) {
+                m_list->addItem(new tsl::elm::CategoryHeader("Server"));
+                m_srv = new FlexItem();
+                m_srv->setText(std::string(srv_addr));
+                m_list->addItem(m_srv);
+            }
         }
 
         frame->setContent(m_list);
