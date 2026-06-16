@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.3.0](https://github.com/kanjieater/OmniSaveSwitch/compare/v1.2.0...v1.3.0) (2026-06-16)
+
+
+### Features
+
+* **overlay:** display server address from config.ini ([47df98a](https://github.com/kanjieater/OmniSaveSwitch/commit/47df98ac621ace118a01c27ec461256021465a6d))
+
+
+### Bug Fixes
+
+* convert stateDiagram-v2 to flowchart TD for reliable GitHub rendering ([2ab171d](https://github.com/kanjieater/OmniSaveSwitch/commit/2ab171d8781cee954c23526206cef40929b9751a))
+* remove slash and special chars from stateDiagram-v2 labels ([118e97b](https://github.com/kanjieater/OmniSaveSwitch/commit/118e97bbe5876bf601fdf1ebb480970e98313f37))
+* replace mermaid block with mermaid.ink pre-rendered image ([86079e8](https://github.com/kanjieater/OmniSaveSwitch/commit/86079e8637fb6d98298a2d3f97a58002cb103125))
+* **sysmodule:** revert 256KB buffer to 64KB; add overflow sentinel and explicit log ([562771e](https://github.com/kanjieater/OmniSaveSwitch/commit/562771ea24d418957efd2bea32707e1e5caf8f26))
+
 ## [1.2.0](https://github.com/kanjieater/OmniSaveSwitch/compare/v1.1.0...v1.2.0) (2026-06-09)
 
 
