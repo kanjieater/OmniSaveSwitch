@@ -31,7 +31,7 @@ jobs:
         run: docker run --rm -v "$(pwd)/sysmodule:/src" omnisave-sysmodule-builder make
 
       - name: Upload sysmodule artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sysmodule
           path: sysmodule/exefs.nsp
@@ -62,7 +62,7 @@ jobs:
         run: docker run --rm -v "$(pwd)/overlay:/src" omnisave-overlay-builder make
 
       - name: Upload overlay artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: overlay
           path: overlay/omnisave.ovl

@@ -26,7 +26,7 @@ jobs:
         run: docker run --rm -v "$(pwd)/sysmodule:/src" omnisave-sysmodule-builder make
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sysmodule-${{ github.sha }}
           path: sysmodule/exefs.nsp
