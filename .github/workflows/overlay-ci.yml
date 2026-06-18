@@ -17,7 +17,7 @@ jobs:
     env:
       LIBTESLA_COMMIT: f766e9b607a05e9756843cbd62b3bfb98be1646c
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: docker/setup-buildx-action@v3
 
