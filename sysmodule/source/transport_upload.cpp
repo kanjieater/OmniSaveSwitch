@@ -264,7 +264,7 @@ int transport_upload(FsFileSystem* sd, const char* key, int* out_snap_seq,
                  "{\"session_id\":\"%s\",\"total_bytes\":%lld,\"manifest_posted\":1}\n",
                  session_id, (long long)total_bytes);
         state_atomic_write(sd, sj_path, sj_body);
-        verified_bytes = 0;
+        verified_bytes = (s64)json_int(manifest_resp, "server_verified_bytes", 0);
     }
 
     // ── Upload windows ─────────────────────────────────────────────────────────
