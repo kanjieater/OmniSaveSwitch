@@ -15,6 +15,7 @@
                                   //  same-second key collision between game-close extraction
                                   //  and delivery pre-inject preservation.
 #define OMNI_ROOT            "/switch/omnisave"
+#define OMNI_DISABLE_FLAG    "/atmosphere/contents/420000000000000C/flags/disable.flag"
 
 // ── V2 transport constants ─────────────────────────────────────────────────────
 

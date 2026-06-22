@@ -160,7 +160,36 @@ int transport_upload(FsFileSystem* sd, const char* key, int* out_snap_seq,
     }
 
     char tid[17] = {0};
-    sscanf(key, "%*18[^-]-%16[^-]", tid);
+    char uid_for_upload[17] = {0};
+    sscanf(key, "%*18[^-]-%16[^-]-%16s", tid, uid_for_upload);
+
+    // s_uid_hex/s_account_nickname are globals clobbered by the last open_save_fs call;
+    // on multi-user titles that's the wrong user.  Resolve from the key instead.
+    char nick_for_upload[33] = {0};
+    if (uid_for_upload[0]) {
+        AccountUid acct_uids[8]; s32 acct_cnt = 0;
+        (void)accountListAllUsers(acct_uids, 8, &acct_cnt);
+        for (s32 i = 0; i < acct_cnt; i++) {
+            char hex[17];
+            snprintf(hex, sizeof(hex), "%016llX",
+                     (unsigned long long)acct_uids[i].uid[0]);
+            if (strcmp(hex, uid_for_upload) != 0) continue;
+            AccountProfile prof;
+            if (R_SUCCEEDED(accountGetProfile(&prof, acct_uids[i]))) {
+                AccountProfileBase base;
+                if (R_SUCCEEDED(accountProfileGet(&prof, NULL, &base))) {
+                    strncpy(nick_for_upload, base.nickname,
+                            sizeof(nick_for_upload) - 1);
+                    nick_for_upload[sizeof(nick_for_upload) - 1] = '\0';
+                    for (char* p = nick_for_upload; *p; p++)
+                        if (*p == '"' || *p == '\\' || *p == '\n' || *p == '\r')
+                            *p = ' ';
+                }
+                accountProfileClose(&prof);
+            }
+            break;
+        }
+    }
 
     char session_id[64] = {0};
     s64 verified_bytes = try_resume_session(sd, key, total_bytes,
@@ -196,7 +225,7 @@ int transport_upload(FsFileSystem* sd, const char* key, int* out_snap_seq,
                 "\"user_key\":\"%s\","
                 "\"user_display\":\"%s\","
                 "\"preservation\":true}",
-                tid, (long long)total_bytes, s_hw_type, s_uid_hex, s_account_nickname);
+                tid, (long long)total_bytes, s_hw_type, uid_for_upload, nick_for_upload);
         } else if (parent_seq > 0) {
             snprintf(req_body, sizeof(req_body),
                 "{\"title_id\":\"%s\","
@@ -205,7 +234,7 @@ int transport_upload(FsFileSystem* sd, const char* key, int* out_snap_seq,
                 "\"user_key\":\"%s\","
                 "\"user_display\":\"%s\","
                 "\"parent_sequence_num\":%d}",
-                tid, (long long)total_bytes, s_hw_type, s_uid_hex, s_account_nickname,
+                tid, (long long)total_bytes, s_hw_type, uid_for_upload, nick_for_upload,
                 parent_seq);
         } else {
             snprintf(req_body, sizeof(req_body),
@@ -214,7 +243,7 @@ int transport_upload(FsFileSystem* sd, const char* key, int* out_snap_seq,
                 "\"hardware_type\":\"%s\","
                 "\"user_key\":\"%s\","
                 "\"user_display\":\"%s\"}",
-                tid, (long long)total_bytes, s_hw_type, s_uid_hex, s_account_nickname);
+                tid, (long long)total_bytes, s_hw_type, uid_for_upload, nick_for_upload);
         }
 
         int status = http_post_json("/api/v1/sync/transactions/inbound",
@@ -294,6 +323,15 @@ int transport_upload(FsFileSystem* sd, const char* key, int* out_snap_seq,
                    (long long)verified_bytes, key);
             http_handle_close(upload_curl);
             return -1;
+        }
+        {
+            FsDirEntryType et;
+            if (R_SUCCEEDED(fsFsGetEntryType(sd, OMNI_DISABLE_FLAG, &et))) {
+                fs_log(sd, "UPLOAD_INTERRUPT disable vb=%lld key=%s",
+                       (long long)verified_bytes, key);
+                http_handle_close(upload_curl);
+                return -1;
+            }
         }
 
         s64 window = total_bytes - verified_bytes;

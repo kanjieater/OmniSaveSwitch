@@ -18,12 +18,14 @@ static void _open_or_create(FsFileSystem* fs, const char* path, FsFile* out, s64
 }
 
 void fs_log(FsFileSystem* fs, const char* fmt, ...) {
-    char line[256];
+    char line[320];
     char ts[32];
     u64 posix = get_posix_utc();
     format_local_time(ts, sizeof(ts), posix);
 
-    int hdr = snprintf(line, sizeof(line), "[%s] ", ts);
+    u64 pid = 0;
+    svcGetProcessId(&pid, CUR_PROCESS_HANDLE);
+    int hdr = snprintf(line, sizeof(line), "[%s][%llu] ", ts, (unsigned long long)pid);
     if (hdr < 0 || hdr >= (int)sizeof(line)) hdr = 0;
 
     va_list ap;
