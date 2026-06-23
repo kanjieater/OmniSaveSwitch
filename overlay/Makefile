@@ -15,7 +15,7 @@ INCLUDES    := include
 
 APP_TITLE   := OmniSave
 APP_AUTHOR  := OmniSave
-APP_VERSION := 1.0.0
+APP_VERSION := 1.0.0 # x-release-please-version
 
 
 ARCH    := -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
