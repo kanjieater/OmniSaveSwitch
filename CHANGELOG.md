@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.1](https://github.com/kanjieater/OmniSaveSwitch/compare/v1.3.0...v1.3.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* resolve user_key from key filename, not stale global ([#10](https://github.com/kanjieater/OmniSaveSwitch/issues/10)) ([95e5149](https://github.com/kanjieater/OmniSaveSwitch/commit/95e5149d45aced6f4fec09d6344636a4f42a8f47))
+* resume upload offset from manifest re-post response ([0bd3d26](https://github.com/kanjieater/OmniSaveSwitch/commit/0bd3d265e0568510ce4e53d9f44621c35cd6f7e6))
+* **tests:** stub svcExitProcess and omni_is_disabled for x86 test build ([5b35727](https://github.com/kanjieater/OmniSaveSwitch/commit/5b35727291b6b505b3ddcca77b21a6995ec581e2))
+
 ## [1.3.0](https://github.com/kanjieater/OmniSaveSwitch/compare/v1.2.0...v1.3.0) (2026-06-16)
 
 
