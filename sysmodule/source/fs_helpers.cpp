@@ -124,6 +124,11 @@ bool copy_file(FsFileSystem* src_fs, const char* src_path,
     return ok && (offset == size);
 }
 
+bool omni_is_disabled(FsFileSystem* sd) {
+    FsDirEntryType et;
+    return R_SUCCEEDED(fsFsGetEntryType(sd, OMNI_DISABLE_FLAG, &et));
+}
+
 bool copy_dir(FsFileSystem* src_fs, const char* src_path,
               FsFileSystem* dst_fs, const char* dst_path) {
     FsDir dir;

@@ -159,14 +159,11 @@ static int download_transaction(FsFileSystem* sd, const DownloadState* ds,
             http_handle_close(dl_curl);
             return -1;
         }
-        {
-            FsDirEntryType et;
-            if (R_SUCCEEDED(fsFsGetEntryType(sd, OMNI_DISABLE_FLAG, &et))) {
-                fs_log(sd, "DL_INTERRUPT disable vb=%lld key=%s",
-                       (long long)verified_bytes, inbound_key);
-                http_handle_close(dl_curl);
-                return -1;
-            }
+        if (omni_is_disabled(sd)) {
+            fs_log(sd, "DL_INTERRUPT disable vb=%lld key=%s",
+                   (long long)verified_bytes, inbound_key);
+            http_handle_close(dl_curl);
+            return -1;
         }
 
         s64 new_vb = -1;

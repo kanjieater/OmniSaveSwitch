@@ -270,9 +270,10 @@ static void setup(void) {
     fsFsCommit(&sd);
 
     config_load(&sd);
-    fs_log(&sd, "SERVER_URL %s://%s:%u tok=%.12s",
+    fs_log(&sd, "SERVER_URL %s://%s:%u paired=%s",
            g_config.server_scheme, g_config.server_host,
-           (unsigned)g_config.server_port, g_config.device_token);
+           (unsigned)g_config.server_port,
+           g_config.device_token[0] ? "yes" : "no");
     detect_device_id(&sd);
     state_init(&sd);
     sync_prefs_load(&sd);
@@ -575,7 +576,7 @@ static void poll_device_config(FsFileSystem* sd) {
     // Clear pairing display — device is now paired
     fsFsDeleteFile(sd, "/switch/omnisave/state/pairing.json");
     s_last_pairing_code[0] = '\0';
-    fs_log(sd, "TOKEN_AUTO_DELIVERED mem=%.12s", g_config.device_token);
+    fs_log(sd, "TOKEN_AUTO_DELIVERED");
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────────

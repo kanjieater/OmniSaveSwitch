@@ -160,11 +160,18 @@ int transport_upload(FsFileSystem* sd, const char* key, int* out_snap_seq,
     }
 
     char tid[17] = {0};
-    char uid_for_upload[17] = {0};
-    sscanf(key, "%*18[^-]-%16[^-]-%16s", tid, uid_for_upload);
+    char uid_for_upload[17] = {0};  // uid[0] only — key format encodes 16 hex chars
+    {
+        char ts_tmp[20] = {0};
+        if (sscanf(key, "%18[^-]-%16[^-]-%16s", ts_tmp, tid, uid_for_upload) != 3) {
+            fs_log(sd, "UPLOAD_KEY_PARSE_FAIL key=%s", key);
+            return 0;
+        }
+    }
 
     // s_uid_hex/s_account_nickname are globals clobbered by the last open_save_fs call;
     // on multi-user titles that's the wrong user.  Resolve from the key instead.
+    // Key embeds uid[0] only (16 hex chars); uid[1] is not in the key format.
     char nick_for_upload[33] = {0};
     if (uid_for_upload[0]) {
         AccountUid acct_uids[8]; s32 acct_cnt = 0;
@@ -182,7 +189,8 @@ int transport_upload(FsFileSystem* sd, const char* key, int* out_snap_seq,
                             sizeof(nick_for_upload) - 1);
                     nick_for_upload[sizeof(nick_for_upload) - 1] = '\0';
                     for (char* p = nick_for_upload; *p; p++)
-                        if (*p == '"' || *p == '\\' || *p == '\n' || *p == '\r')
+                        if (*p == '"' || *p == '\\' || *p == '\n' || *p == '\r' ||
+                            *p == '\t')
                             *p = ' ';
                 }
                 accountProfileClose(&prof);
@@ -324,14 +332,11 @@ int transport_upload(FsFileSystem* sd, const char* key, int* out_snap_seq,
             http_handle_close(upload_curl);
             return -1;
         }
-        {
-            FsDirEntryType et;
-            if (R_SUCCEEDED(fsFsGetEntryType(sd, OMNI_DISABLE_FLAG, &et))) {
-                fs_log(sd, "UPLOAD_INTERRUPT disable vb=%lld key=%s",
-                       (long long)verified_bytes, key);
-                http_handle_close(upload_curl);
-                return -1;
-            }
+        if (omni_is_disabled(sd)) {
+            fs_log(sd, "UPLOAD_INTERRUPT disable vb=%lld key=%s",
+                   (long long)verified_bytes, key);
+            http_handle_close(upload_curl);
+            return -1;
         }
 
         s64 window = total_bytes - verified_bytes;

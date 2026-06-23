@@ -539,13 +539,10 @@ void fsm_on_wake(void) {
 }
 
 void fsm_tick(FsFileSystem* sd, const InputSnapshot* snap) {
-    {
-        FsDirEntryType et;
-        if (R_SUCCEEDED(fsFsGetEntryType(sd, OMNI_DISABLE_FLAG, &et))) {
-            fs_log(sd, "DISABLE_FLAG_DETECTED clean_exit");
-            fsFsCommit(sd);
-            svcExitProcess();
-        }
+    if (omni_is_disabled(sd)) {
+        fs_log(sd, "DISABLE_FLAG_DETECTED clean_exit");
+        fsFsCommit(sd);
+        svcExitProcess();
     }
     switch (s_state) {
         case IDLE:          do_idle(sd, snap);          break;
