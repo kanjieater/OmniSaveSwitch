@@ -71,6 +71,9 @@ bool state_read_lineage(FsFileSystem*, const char*, const char*,
     return false;
 }
 
+// kernel syscall stubs (Nintendo OS calls not available on x86 test host)
+extern "C" void svcExitProcess(void) {}
+
 // main.cpp helpers
 u64  get_posix_utc(void)                        { return g_mock_posix_utc; }
 bool wait_network_ready(void)                   { return g_mock_network_ready != 0; }
@@ -82,6 +85,8 @@ void refresh_dns_servers(void)                  {}
 // fs_helpers — fs_log is silent to avoid VFS log-file side-effects in tests.
 // fs_write_text_file / fs_read_text_file / ensure_dir use VFS directly.
 void fs_log(FsFileSystem*, const char*, ...) {}
+
+bool omni_is_disabled(FsFileSystem*) { return false; }
 
 void path_join(char* out, size_t sz, const char* dir, const char* name) {
     if (dir[0] == '/' && dir[1] == '\0')

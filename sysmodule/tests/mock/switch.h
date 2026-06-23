@@ -169,6 +169,8 @@ Result fsFileSetSize(FsFile* f, s64 size);
 
 Result timeToCalendarTimeWithMyRule(u64 posix, TimeCalendarTime* out, void* info);
 
+void svcExitProcess(void);
+
 #ifdef __cplusplus
 }
 #endif
