@@ -159,6 +159,12 @@ static int download_transaction(FsFileSystem* sd, const DownloadState* ds,
             http_handle_close(dl_curl);
             return -1;
         }
+        if (omni_is_disabled(sd)) {
+            fs_log(sd, "DL_INTERRUPT disable vb=%lld key=%s",
+                   (long long)verified_bytes, inbound_key);
+            http_handle_close(dl_curl);
+            return -1;
+        }
 
         s64 new_vb = -1;
         for (int r = 0; r < 3; r++) {
@@ -235,6 +241,7 @@ int transport_poll_inbound(FsFileSystem* sd) {
     char url[128];
     snprintf(url, sizeof(url), "/api/v1/sync/queue?sync_generation=%u",
              state_get_sync_generation());
+    fs_log(sd, "POLL_TOKEN tok=%.12s srv=%s", g_config.device_token, g_config.server_host);
     int status = http_get_body(url, queue_body, sizeof(queue_body));
     if (status == -1) {
         fs_log(sd, "POLL_RESPONSE_TOO_LARGE");

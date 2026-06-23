@@ -270,6 +270,10 @@ static void setup(void) {
     fsFsCommit(&sd);
 
     config_load(&sd);
+    fs_log(&sd, "SERVER_URL %s://%s:%u paired=%s",
+           g_config.server_scheme, g_config.server_host,
+           (unsigned)g_config.server_port,
+           g_config.device_token[0] ? "yes" : "no");
     detect_device_id(&sd);
     state_init(&sd);
     sync_prefs_load(&sd);

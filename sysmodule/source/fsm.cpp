@@ -539,6 +539,11 @@ void fsm_on_wake(void) {
 }
 
 void fsm_tick(FsFileSystem* sd, const InputSnapshot* snap) {
+    if (omni_is_disabled(sd)) {
+        fs_log(sd, "DISABLE_FLAG_DETECTED clean_exit");
+        fsFsCommit(sd);
+        svcExitProcess();
+    }
     switch (s_state) {
         case IDLE:          do_idle(sd, snap);          break;
         case UPLOADING:     do_uploading(sd, snap);     break;

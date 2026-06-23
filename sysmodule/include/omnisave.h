@@ -15,6 +15,7 @@
                                   //  same-second key collision between game-close extraction
                                   //  and delivery pre-inject preservation.
 #define OMNI_ROOT            "/switch/omnisave"
+#define OMNI_DISABLE_FLAG    "/atmosphere/contents/420000000000000C/flags/disable.flag"
 
 // ── V2 transport constants ─────────────────────────────────────────────────────
 
@@ -148,6 +149,7 @@ bool copy_file(FsFileSystem* src_fs, const char* src_path,
                FsFileSystem* dst_fs, const char* dst_path);
 bool copy_dir(FsFileSystem* src_fs, const char* src_path,
               FsFileSystem* dst_fs, const char* dst_path);
+bool omni_is_disabled(FsFileSystem* sd);
 
 // ── config.cpp ─────────────────────────────────────────────────────────────────
 
