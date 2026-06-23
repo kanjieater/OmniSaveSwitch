@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.3](https://github.com/kanjieater/OmniSaveSwitch/compare/v1.3.2...v1.3.3) (2026-06-23)
+
+
+### Bug Fixes
+
+* remove tracked build artifacts and add gitignores ([600b277](https://github.com/kanjieater/OmniSaveSwitch/commit/600b277f01407a237644b031fefeca87c76113b7))
+
 ## [1.3.2](https://github.com/kanjieater/OmniSaveSwitch/compare/v1.3.1...v1.3.2) (2026-06-23)
 
 
