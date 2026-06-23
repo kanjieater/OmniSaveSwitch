@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.2](https://github.com/kanjieater/OmniSaveSwitch/compare/v1.3.1...v1.3.2) (2026-06-23)
+
+
+### Bug Fixes
+
+* annotate version files for release-please and fix extra-files config ([e2a0023](https://github.com/kanjieater/OmniSaveSwitch/commit/e2a0023304e0d20925762d1cf44eb44a35a95696))
+
 ## [1.3.1](https://github.com/kanjieater/OmniSaveSwitch/compare/v1.3.0...v1.3.1) (2026-06-23)
 
 
