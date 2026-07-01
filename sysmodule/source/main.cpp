@@ -288,7 +288,6 @@ static void setup(void) {
 
 int  s_heartbeat_ticks       = 10;
 int  s_poll_hot_remain       = 0;
-static int s_activity_ticks  = 0;
 u64  s_last_activity_posix   = 0;
 bool s_network_was_down      = false;
 static int s_extract_retry_count = 0;
@@ -361,9 +360,14 @@ static void build_snapshot(FsFileSystem* sd, InputSnapshot* snap) {
             else                  s_heartbeat_ticks = 300;
         }
 
-        if (--s_activity_ticks <= 0) {
+    }
+
+    {
+        static u64 s_last_activity_flush_posix = 0;
+        u64 flush_now = get_posix_utc();
+        if (flush_now - s_last_activity_flush_posix >= 300) {
             activity_flush(sd);
-            s_activity_ticks = 300;  // ~5 min at ~1s per idle tick
+            s_last_activity_flush_posix = flush_now;
         }
     }
 

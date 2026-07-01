@@ -5,7 +5,7 @@
 #include "omnisave.h"
 
 #define ACTIVITY_BATCH_MAX        200
-#define ACTIVITY_EVENT_MAX_CHARS  200
+#define ACTIVITY_EVENT_MAX_CHARS  210
 #define ACTIVITY_JSON_BUF         (ACTIVITY_BATCH_MAX * ACTIVITY_EVENT_MAX_CHARS + 32)
 #define ACTIVITY_OFFSET_PATH      OMNI_ROOT "/state/activity_offset.json"
 
@@ -27,7 +27,14 @@ static void save_offset(FsFileSystem* sd, u32 offset) {
     snprintf(bak, sizeof(bak), "%s.bak", ACTIVITY_OFFSET_PATH);
 
     fs_write_text_file(sd, tmp, json);
-    fsFsCommit(sd);
+
+    // Verify .tmp landed before touching the live file.
+    // fs_write_text_file returns void; if SD was full or I/O failed, .tmp won't
+    // exist, and proceeding would destroy the only good copy via the rename below.
+    FsFile verify;
+    if (R_FAILED(fsFsOpenFile(sd, tmp, FsOpenMode_Read, &verify))) return;
+    fsFileClose(&verify);
+
     fsFsRenameFile(sd, ACTIVITY_OFFSET_PATH, bak);
     fsFsRenameFile(sd, tmp, ACTIVITY_OFFSET_PATH);
     fsFsDeleteFile(sd, bak);
