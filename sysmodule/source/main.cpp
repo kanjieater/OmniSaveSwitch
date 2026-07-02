@@ -613,7 +613,7 @@ int main(int argc, char** argv) {
     if (R_SUCCEEDED(fsOpenSdCardFileSystem(&sd))) {
         recovery_sweep(&sd, SWEEP_BOOT_CLEAN_ALL);
         fsFsCommit(&sd);
-        activity_init(&sd);
+        activity_init();
         // Force catalog enumeration + report on first heartbeat.
         s_catalog_hash = 0;
         s_catalog_dirty = false;  // will be set by heartbeat after enumeration

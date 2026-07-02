@@ -9,8 +9,9 @@
 #define ACTIVITY_JSON_BUF         (ACTIVITY_BATCH_MAX * ACTIVITY_EVENT_MAX_CHARS + 64)
 #define ACTIVITY_OFFSET_PATH      OMNI_ROOT "/state/activity_offset.json"
 
-static u32  s_last_offset       = 0;
-static bool s_activity_flushing = false;
+static u32  s_last_offset           = 0;
+static bool s_activity_flushing     = false;
+static bool s_watermark_initialized = false;
 
 // Reconstruct a u64 from two u32s stored with high/low words swapped (pdm.h convention).
 static u64 pdm_u32pair_to_u64(u32 hi, u32 lo) {
@@ -44,29 +45,29 @@ static bool save_offset(FsFileSystem* sd, u32 offset) {
     return R_SUCCEEDED(rc);
 }
 
-void activity_init(FsFileSystem* sd) {
-    s_last_offset = 0;
-
-    // Server is authoritative — query it first so a DB wipe causes the Switch
-    // to re-drain from 0 automatically, without touching the SD card.
-    char resp[128] = {0};
-    if (http_get_body("/api/v1/activity/offset", resp, sizeof(resp)) == 200) {
-        const char* p = strstr(resp, "\"last_offset\":");
-        if (p) s_last_offset = (u32)strtoul(p + 14, NULL, 10);
-        return;
-    }
-
-    // Fallback: SD card (server unreachable at boot).
-    char buf[128] = {0};
-    if (fs_read_text_file(sd, ACTIVITY_OFFSET_PATH, buf, sizeof(buf))) {
-        const char* p = strstr(buf, "\"last_offset\":");
-        if (p) s_last_offset = (u32)strtoul(p + 14, NULL, 10);
-    }
+void activity_init(void) {
+    s_last_offset           = 0;
+    s_watermark_initialized = false;
 }
 
 int activity_flush(FsFileSystem* sd) {
     if (s_activity_flushing) return 0;
     s_activity_flushing = true;
+
+    // Defer flushing until we have confirmed the server's watermark.
+    // Any non-200 (401 not-yet-paired, 500, network failure) means the offset
+    // is unavailable — skip this flush and retry on the next trigger.
+    if (!s_watermark_initialized) {
+        char resp[128] = {0};
+        if (http_get_body("/api/v1/activity/offset", resp, sizeof(resp)) == 200) {
+            const char* p = strstr(resp, "\"last_offset\":");
+            if (p) s_last_offset = (u32)strtoul(p + 14, NULL, 10);
+            s_watermark_initialized = true;
+        } else {
+            s_activity_flushing = false;
+            return 0;
+        }
+    }
 
     // Allocate once; reused across all batches in this flush cycle.
     static PdmPlayEvent events[ACTIVITY_BATCH_MAX];
