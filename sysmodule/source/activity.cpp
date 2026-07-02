@@ -129,9 +129,10 @@ int activity_flush(FsFileSystem* sd) {
                 continue;  // PowerStateChange, OperationModeChange, Initialize
             }
 
-            // Pre-flight: ensure space for this event + closing field
+            // Pre-flight: ensure space for this event + closing field.
+            // Closing is ],\"next_offset\":NNNNNNNNNN} — 27 chars max + null = 28 bytes.
             // Stop here if it won't fit — consumed stays at i so these events retry next flush.
-            if ((int)sizeof(json) - pos < ACTIVITY_EVENT_MAX_CHARS + 2) break;
+            if ((int)sizeof(json) - pos < ACTIVITY_EVENT_MAX_CHARS + 28) break;
 
             int n = snprintf(json + pos, sizeof(json) - pos,
                 "%s{\"event_type\":\"%s\"%s%s%s%s%s%s"
