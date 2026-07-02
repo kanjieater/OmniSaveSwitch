@@ -6,7 +6,7 @@
 
 #define ACTIVITY_BATCH_MAX        200
 #define ACTIVITY_EVENT_MAX_CHARS  210
-#define ACTIVITY_JSON_BUF         (ACTIVITY_BATCH_MAX * ACTIVITY_EVENT_MAX_CHARS + 32)
+#define ACTIVITY_JSON_BUF         (ACTIVITY_BATCH_MAX * ACTIVITY_EVENT_MAX_CHARS + 64)
 #define ACTIVITY_OFFSET_PATH      OMNI_ROOT "/state/activity_offset.json"
 
 static u32  s_last_offset       = 0;
@@ -47,13 +47,20 @@ static bool save_offset(FsFileSystem* sd, u32 offset) {
 void activity_init(FsFileSystem* sd) {
     s_last_offset = 0;
 
+    // Server is authoritative — query it first so a DB wipe causes the Switch
+    // to re-drain from 0 automatically, without touching the SD card.
+    char resp[128] = {0};
+    if (http_get_body("/api/v1/activity/offset", resp, sizeof(resp)) == 200) {
+        const char* p = strstr(resp, "\"last_offset\":");
+        if (p) s_last_offset = (u32)strtoul(p + 14, NULL, 10);
+        return;
+    }
+
+    // Fallback: SD card (server unreachable at boot).
     char buf[128] = {0};
     if (fs_read_text_file(sd, ACTIVITY_OFFSET_PATH, buf, sizeof(buf))) {
         const char* p = strstr(buf, "\"last_offset\":");
-        if (p) {
-            p += 14;
-            s_last_offset = (u32)strtoul(p, NULL, 10);
-        }
+        if (p) s_last_offset = (u32)strtoul(p + 14, NULL, 10);
     }
 }
 
@@ -122,7 +129,7 @@ int activity_flush(FsFileSystem* sd) {
                 continue;  // PowerStateChange, OperationModeChange, Initialize
             }
 
-            // Pre-flight: ensure space for this event + closing ]}
+            // Pre-flight: ensure space for this event + closing field
             // Stop here if it won't fit — consumed stays at i so these events retry next flush.
             if ((int)sizeof(json) - pos < ACTIVITY_EVENT_MAX_CHARS + 2) break;
 
@@ -141,7 +148,9 @@ int activity_flush(FsFileSystem* sd) {
             consumed++;
         }
 
-        snprintf(json + pos, sizeof(json) - pos, "]}");
+        // Append next_offset so the server can durably track how far it has received.
+        u32 next_offset = s_last_offset + (u32)consumed;
+        snprintf(json + pos, sizeof(json) - pos, "],\"next_offset\":%u}", (unsigned)next_offset);
 
         // All events in this batch were filtered — advance past them and keep draining.
         if (written == 0) {
@@ -157,9 +166,8 @@ int activity_flush(FsFileSystem* sd) {
         if (status >= 200 && status < 300) {
             // Only advance offset after confirmed persist. If save fails, the same
             // batch is retried next trigger — the server must handle duplicate ingestion.
-            u32 new_offset = s_last_offset + (u32)consumed;
-            if (!save_offset(sd, new_offset)) break;
-            s_last_offset = new_offset;
+            if (!save_offset(sd, next_offset)) break;
+            s_last_offset = next_offset;
             // Continue to next batch.
         } else {
             break;  // POST failed — retry next trigger from current offset.
