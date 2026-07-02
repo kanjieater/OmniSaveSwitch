@@ -101,7 +101,10 @@ int activity_flush(FsFileSystem* sd) {
             char prof_id[33] = {0};
 
             if (e->play_event_type == PdmPlayEventType_Applet) {
-
+                if (e->event_data.applet.log_policy != PdmPlayLogPolicy_All) {
+                    consumed++;
+                    continue;
+                }
                 switch (e->event_data.applet.event_type) {
                     case 0:                 etype = "APPLICATION_STARTED";   break;
                     case 1: case 5: case 6: etype = "APPLICATION_EXITED";    break;
