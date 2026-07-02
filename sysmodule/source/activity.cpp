@@ -40,8 +40,8 @@ static bool save_offset(FsFileSystem* sd, u32 offset) {
     fsFsRenameFile(sd, ACTIVITY_OFFSET_PATH, bak);
     fsFsRenameFile(sd, tmp, ACTIVITY_OFFSET_PATH);
     fsFsDeleteFile(sd, bak);
-    fsFsCommit(sd);
-    return true;
+    Result rc = fsFsCommit(sd);
+    return R_SUCCEEDED(rc);
 }
 
 void activity_init(FsFileSystem* sd) {
@@ -145,7 +145,7 @@ int activity_flush(FsFileSystem* sd) {
 
         // All events in this batch were filtered — advance past them and keep draining.
         if (written == 0) {
-            u32 new_offset = s_last_offset + (u32)(consumed > 0 ? consumed : total_read);
+            u32 new_offset = s_last_offset + (u32)total_read;
             if (!save_offset(sd, new_offset)) break;
             s_last_offset = new_offset;
             continue;
