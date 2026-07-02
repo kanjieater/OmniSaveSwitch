@@ -9,9 +9,8 @@
 #define ACTIVITY_JSON_BUF         (ACTIVITY_BATCH_MAX * ACTIVITY_EVENT_MAX_CHARS + 64)
 #define ACTIVITY_OFFSET_PATH      OMNI_ROOT "/state/activity_offset.json"
 
-static u32  s_last_offset           = 0;
-static bool s_activity_flushing     = false;
-static bool s_watermark_initialized = false;
+static u32  s_last_offset       = 0;
+static bool s_activity_flushing = false;
 
 // Reconstruct a u64 from two u32s stored with high/low words swapped (pdm.h convention).
 static u64 pdm_u32pair_to_u64(u32 hi, u32 lo) {
@@ -46,27 +45,23 @@ static bool save_offset(FsFileSystem* sd, u32 offset) {
 }
 
 void activity_init(void) {
-    s_last_offset           = 0;
-    s_watermark_initialized = false;
+    s_last_offset = 0;
 }
 
 int activity_flush(FsFileSystem* sd) {
     if (s_activity_flushing) return 0;
     s_activity_flushing = true;
 
-    // Defer flushing until we have confirmed the server's watermark.
-    // Any non-200 (401 not-yet-paired, 500, network failure) means the offset
-    // is unavailable — skip this flush and retry on the next trigger.
-    if (!s_watermark_initialized) {
-        char resp[128] = {0};
-        if (http_get_body("/api/v1/activity/offset", resp, sizeof(resp)) == 200) {
-            const char* p = strstr(resp, "\"last_offset\":");
-            if (p) s_last_offset = (u32)strtoul(p + 14, NULL, 10);
-            s_watermark_initialized = true;
-        } else {
-            s_activity_flushing = false;
-            return 0;
-        }
+    // Re-query server watermark on every flush so a mid-session DB wipe causes
+    // the Switch to re-drain from the server's new offset automatically.
+    // Any non-200 (401 not-yet-paired, 500, network failure) defers this flush.
+    char resp[128] = {0};
+    if (http_get_body("/api/v1/activity/offset", resp, sizeof(resp)) == 200) {
+        const char* p = strstr(resp, "\"last_offset\":");
+        if (p) s_last_offset = (u32)strtoul(p + 14, NULL, 10);
+    } else {
+        s_activity_flushing = false;
+        return 0;
     }
 
     // Allocate once; reused across all batches in this flush cycle.
