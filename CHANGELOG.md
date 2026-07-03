@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.4.0](https://github.com/kanjieater/OmniSaveSwitch/compare/v1.3.3...v1.4.0) (2026-07-03)
+
+
+### Features
+
+* query server offset on init; include next_offset in event POST ([0750ffe](https://github.com/kanjieater/OmniSaveSwitch/commit/0750ffeb590e93abacb8389515e05b8d1d438c68))
+* read pdm:qry play events and POST to server activity endpoint ([a0daa6b](https://github.com/kanjieater/OmniSaveSwitch/commit/a0daa6bbf8b6df7d730c2e6666fbb27124aa3a45))
+* read pdm:qry play events and POST to server activity endpoint ([52d533f](https://github.com/kanjieater/OmniSaveSwitch/commit/52d533f273a7c6f7eacb5437081fcbec2a62ba6d))
+* server-driven PDM offset — query on init, send next_offset on flush ([7cc2e52](https://github.com/kanjieater/OmniSaveSwitch/commit/7cc2e526db4007f058ac01764893ea4d610b1ccb))
+
+
+### Bug Fixes
+
+* address PR [#13](https://github.com/kanjieater/OmniSaveSwitch/issues/13) review — flush timing, offset safety, constant size ([751e5e0](https://github.com/kanjieater/OmniSaveSwitch/commit/751e5e07db496a8606d7dda2784083961b45cdd5))
+* check fsFsCommit result in save_offset; simplify dead branch ([9f25ec8](https://github.com/kanjieater/OmniSaveSwitch/commit/9f25ec8b04f72d6a9b64e1b797a4882fbda5e453))
+* defer PDM offset sync until server responds 200 ([113ff0a](https://github.com/kanjieater/OmniSaveSwitch/commit/113ff0a8f6d0e93c91e95aef5156e73f3da8a8d0))
+* defer PDM offset sync until server responds 200 ([5e51b93](https://github.com/kanjieater/OmniSaveSwitch/commit/5e51b935d4ee321cce0812a5cfb7f90aa99c7978))
+* drain full PDM buffer per flush trigger ([f7e62bc](https://github.com/kanjieater/OmniSaveSwitch/commit/f7e62bcbb60ac6545c9f42a79015d9da00ca6361))
+* drain full PDM buffer per flush trigger with idempotency-safe offset ([afa547e](https://github.com/kanjieater/OmniSaveSwitch/commit/afa547e99a81c9858c07dd6cf5fcc9f58a43041c))
+* re-query server offset on every flush; untrack committed binaries ([c88b807](https://github.com/kanjieater/OmniSaveSwitch/commit/c88b80713f3ff657e82023523867cbe0d8a8caac))
+* remove save_offset; server endpoint is now authoritative for offset ([2b905a7](https://github.com/kanjieater/OmniSaveSwitch/commit/2b905a75fed7918b111bb9ab3d100408e306fbb4))
+* treat missing key on 200 as failure; reflow header comment ([d6544ab](https://github.com/kanjieater/OmniSaveSwitch/commit/d6544ab3a4348bb204762563f699143bbb70cfc8))
+* update pre-flight guard for longer next_offset closing string ([a632de6](https://github.com/kanjieater/OmniSaveSwitch/commit/a632de6d3649658f456328ba834219de615c5d37))
+
 ## [1.3.3](https://github.com/kanjieater/OmniSaveSwitch/compare/v1.3.2...v1.3.3) (2026-06-23)
 
 

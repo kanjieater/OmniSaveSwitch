@@ -7,7 +7,7 @@
 
 // ── Build constants ────────────────────────────────────────────────────────────
 
-#define OMNISAVE_VERSION    "1.3.3" // x-release-please-version
+#define OMNISAVE_VERSION    "1.4.0" // x-release-please-version
 #define DEFAULT_SERVER_PORT  8991
 #define ENTRY_BATCH          8
 #define SNAP_KEY_LEN         52   // "YYYYMMDD_HHMMSS_nn-TTTTTTTTTTTTTTTT-UUUUUUUUUUUUUUUU"
