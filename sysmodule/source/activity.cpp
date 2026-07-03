@@ -7,7 +7,6 @@
 #define ACTIVITY_BATCH_MAX        200
 #define ACTIVITY_EVENT_MAX_CHARS  210
 #define ACTIVITY_JSON_BUF         (ACTIVITY_BATCH_MAX * ACTIVITY_EVENT_MAX_CHARS + 64)
-#define ACTIVITY_OFFSET_PATH      OMNI_ROOT "/state/activity_offset.json"
 
 static u32  s_last_offset       = 0;
 static bool s_activity_flushing = false;
@@ -17,38 +16,11 @@ static u64 pdm_u32pair_to_u64(u32 hi, u32 lo) {
     return ((u64)hi << 32) | (u64)lo;
 }
 
-// Returns true if the offset was durably persisted, false on I/O failure.
-// Callers must not advance s_last_offset unless this returns true.
-static bool save_offset(FsFileSystem* sd, u32 offset) {
-    char json[64];
-    snprintf(json, sizeof(json), "{\"last_offset\":%u}\n", (unsigned)offset);
-
-    char tmp[FS_MAX_PATH + 8];
-    char bak[FS_MAX_PATH + 8];
-    snprintf(tmp, sizeof(tmp), "%s.tmp", ACTIVITY_OFFSET_PATH);
-    snprintf(bak, sizeof(bak), "%s.bak", ACTIVITY_OFFSET_PATH);
-
-    fs_write_text_file(sd, tmp, json);
-
-    // Verify .tmp landed before touching the live file.
-    // fs_write_text_file returns void; if SD was full or I/O failed, .tmp won't
-    // exist, and proceeding would destroy the only good copy via the rename below.
-    FsFile verify;
-    if (R_FAILED(fsFsOpenFile(sd, tmp, FsOpenMode_Read, &verify))) return false;
-    fsFileClose(&verify);
-
-    fsFsRenameFile(sd, ACTIVITY_OFFSET_PATH, bak);
-    fsFsRenameFile(sd, tmp, ACTIVITY_OFFSET_PATH);
-    fsFsDeleteFile(sd, bak);
-    Result rc = fsFsCommit(sd);
-    return R_SUCCEEDED(rc);
-}
-
 void activity_init(void) {
     s_last_offset = 0;
 }
 
-int activity_flush(FsFileSystem* sd) {
+int activity_flush(void) {
     if (s_activity_flushing) return 0;
     s_activity_flushing = true;
 
@@ -152,9 +124,7 @@ int activity_flush(FsFileSystem* sd) {
 
         // All events in this batch were filtered — advance past them and keep draining.
         if (written == 0) {
-            u32 new_offset = s_last_offset + (u32)total_read;
-            if (!save_offset(sd, new_offset)) break;
-            s_last_offset = new_offset;
+            s_last_offset += (u32)total_read;
             continue;
         }
 
@@ -162,11 +132,9 @@ int activity_flush(FsFileSystem* sd) {
         int status = http_post_json("/api/v1/activity/events", json, resp, sizeof(resp));
         last_status = status;
         if (status >= 200 && status < 300) {
-            // Only advance offset after confirmed persist. If save fails, the same
-            // batch is retried next trigger — the server must handle duplicate ingestion.
-            if (!save_offset(sd, next_offset)) break;
+            // Server is now authoritative for offset; advance in-memory offset on 2xx.
+            // Server deduplicates re-delivered events, so retry-on-failure is safe.
             s_last_offset = next_offset;
-            // Continue to next batch.
         } else {
             break;  // POST failed — retry next trigger from current offset.
         }

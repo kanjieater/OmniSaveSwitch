@@ -6,6 +6,5 @@
 void activity_init(void);
 
 // Read new pdm events since last offset and POST to server.
-// sd must be open (used to persist the updated offset on success).
 // Non-reentrant: if already in progress, returns 0 immediately.
-int activity_flush(FsFileSystem* sd);
+int activity_flush(void);

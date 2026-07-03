@@ -366,7 +366,7 @@ static void build_snapshot(FsFileSystem* sd, InputSnapshot* snap) {
         static u64 s_last_activity_flush_posix = 0;
         u64 flush_now = get_posix_utc();
         if (flush_now - s_last_activity_flush_posix >= 300) {
-            activity_flush(sd);
+            activity_flush();
             s_last_activity_flush_posix = flush_now;
         }
     }
@@ -661,7 +661,7 @@ int main(int argc, char** argv) {
             s_extract_retry_title = 0;
         }
         if (closed_tid != 0) {
-            activity_flush(&sd2);  // APPLICATION_EXITED just landed in pdm — flush immediately
+            activity_flush();  // APPLICATION_EXITED just landed in pdm — flush immediately
             if (s_extract_retry_count == 0)
                 fs_log(&sd2, "GAME_CLOSE title=%016llX", (unsigned long long)closed_tid);
             // Write UPLOADING status now so overlay shows "Backing Up" during the
