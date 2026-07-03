@@ -1,11 +1,10 @@
 #pragma once
 #include <switch.h>
 
-// Load persisted pdm offset from SD. Call once after pdmqryInitialize() and SD mount.
-// sd must be open for reading; activity_init does not close it.
-void activity_init(FsFileSystem* sd);
+// Reset offset state. Call once after pdmqryInitialize().
+// Server watermark is acquired lazily on the first activity_flush() that gets a 200 response.
+void activity_init(void);
 
 // Read new pdm events since last offset and POST to server.
-// sd must be open (used to persist the updated offset on success).
 // Non-reentrant: if already in progress, returns 0 immediately.
-int activity_flush(FsFileSystem* sd);
+int activity_flush(void);
