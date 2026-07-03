@@ -58,7 +58,8 @@ int activity_flush(FsFileSystem* sd) {
     char resp[128] = {0};
     if (http_get_body("/api/v1/activity/offset", resp, sizeof(resp)) == 200) {
         const char* p = strstr(resp, "\"last_offset\":");
-        if (p) s_last_offset = (u32)strtoul(p + 14, NULL, 10);
+        if (!p) { s_activity_flushing = false; return 0; }
+        s_last_offset = (u32)strtoul(p + 14, NULL, 10);
     } else {
         s_activity_flushing = false;
         return 0;
