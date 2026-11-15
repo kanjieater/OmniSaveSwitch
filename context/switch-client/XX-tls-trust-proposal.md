@@ -1,16 +1,23 @@
-# Proposal: verified HTTPS trust for the Switch sysmodule
+# Proposal: investigate intermittent Switch TLS rejection, preserve verified HTTPS
 
 **Status:** Proposed; **no runtime change in this PR**.
 **Component:** `sysmodule` HTTPS client.
-**Goal:** Make HTTPS to OmniSave reliable across ordinary server-certificate renewals without disabling certificate-chain, hostname, or date verification.
+**Goal:** Explain and prevent intermittent HTTPS certificate-validation failures while preserving certificate-chain, hostname, and date verification. **Do not assume the system CA store is broken.**
 
 ## Current behavior and evidence
+
+### New observation: connection recovered without a known trust change
+
+- **User observed:** saves successfully uploaded **after** the network/TLS failure. This is evidence of eventual successful connectivity and weakens the hypothesis of a permanently missing CA root **if** those transfers used the same HTTPS hostname, active TLS verification, CA configuration, and certificate chain.
+- **Not yet established:** whether the successful upload used HTTPS with `verify_tls=1`, the same target hostname/remote endpoint and certificate chain, or whether the device clock, network path, process initialization, firmware, or server certificate changed in between. Verify these before drawing any trust-store conclusion. It is also possible the observed 'network' error came from a different cause than the earlier `bad_certificate` event.
+- **Working hypotheses, not conclusions:** temporary device clock drift, sleep/wake/resume or SSL initialization state, network-path/DNS change, different certificate chains from server edges, transient chain delivery, or a genuine trust-store issue. **Successful uploads do not prove which one occurred.**
+- **Decision:** diagnosis and error classification are first priority. **Do not ship a CA bundle or upgrade the TLS stack just because a `bad_certificate` event occurred.** Make trust-store changes only after a demonstrated validation-path problem.
 
 - `sysmodule/source/http.cpp` creates ordinary, upload, and download curl handles. Each sets `CURLOPT_SSL_VERIFYPEER` and `CURLOPT_SSL_VERIFYHOST` based on `g_config.verify_tls`. The configuration exposes an unsafe `verify_tls=0` escape hatch and no explicit trust-bundle selection.
 - `sysmodule/source/main.cpp::wait_network_ready()` retries `http_ping("/api/health")` ten times; any TLS rejection results in `false`. `sysmodule/source/fsm.cpp` can then label the condition `No Network — Will Retry`, conflating certificate trust and connectivity.
 - The build installs `switch-curl` (`sysmodule/Dockerfile`). Its devkitPro package is based on curl 7.69.1 with the **libnx SSL backend**, not an mbedTLS-powered curl backend. Linking separate mbedTLS libraries in `sysmodule/Makefile` does not upgrade curl's active TLS backend.
 - The devkitPro switch-curl patch maps underlying Horizon SSL verification errors to coarse curl errors. It calls `sslConnectionGetVerifyCertError()` inside the backend, but that detail is not consistently available at OmniSave's call sites. A bare `bad_certificate` or `CURLE_PEER_FAILED_VERIFICATION` does **not** identify the offending verification condition.
-- **Root cause is not yet proven.** An incomplete server chain, unsupported/missing root, outdated firmware trust store, clock, backend incompatibility, and a genuine invalid certificate are distinct possibilities. Collect device evidence first; do not assume one.
+- **Root cause is not yet proven.** An incomplete server chain, unsupported/missing root, outdated firmware trust store, clock, backend incompatibility, and a genuine invalid certificate are distinct possibilities. A persistent CA-root deficit is **less likely** after successful same-endpoint verified HTTPS, but not eliminated until the above controls are checked.
 
 References:
 - [OmniSave HTTP implementation](https://github.com/kanjieater/OmniSaveSwitch/blob/main/sysmodule/source/http.cpp)
@@ -23,17 +30,18 @@ References:
 
 ### Phase 1 — diagnose on actual hardware
 
-1. Reproduce with the configured **dev HTTPS hostname** on a Switch running OmniSave. Record the firmware version, curl version and active SSL backend (`curl_version_info`), TLS failure code, and time/date sanity without logging any tokens.
-2. Obtain the backend's original verification result where possible. In `switch-curl`, `sslConnectionGetVerifyCertError()` is invoked when peer verification fails, but existing translation loses detail. If curl's error buffer and `CURLINFO_SSL_VERIFYRESULT` are insufficient or unsupported, apply a narrowly scoped, versioned backend patch to preserve the numeric libnx result and meaningful error text. Do not guess a diagnosis from `bad_certificate`.
-3. Independently inspect the dev endpoint's served chain, intermediates and hostname verification (for example with `openssl s_client -verify_return_error -verify_hostname HOST -servername HOST -connect HOST:443`). Check the Switch clock. Correct server-side incomplete chains at the server, not with client verification bypasses.
-4. Record before/after logs showing **why** the current handshake was rejected. Keep the investigation's result attached to the implementation PR.
+1. **Correlate actual failures with later successful uploads before changing settings.** From timestamped `events.log` and server access logs, identify the failed `/api/health` or upload attempt, next successful HTTPS upload, whether both used the same hostname, certificate chain and `verify_tls` setting, and any intervening sleep/wake, restart, network/DNS/remote-IP, clock adjustment, certificate renewal, or configuration change. Do not assume two events are the same failure type; preserve logs and redact secrets.
+2. Reproduce with the configured **dev HTTPS hostname** on a Switch if feasible (intermittent failures might not reproduce on demand). Record firmware version, curl version and active SSL backend (`curl_version_info`), TLS failure code, system clock/timezone accuracy, and relevant sleep/wake/SSL-init events without logging tokens.
+3. Obtain the backend's original verification result where possible. In `switch-curl`, `sslConnectionGetVerifyCertError()` is invoked when peer verification fails, but existing translation loses detail. If curl's error buffer and `CURLINFO_SSL_VERIFYRESULT` are insufficient or unsupported, apply a narrowly scoped, versioned backend patch to preserve the numeric libnx result and meaningful error text. Do not guess a diagnosis from `bad_certificate`.
+4. Independently inspect the dev endpoint's served chain, intermediates and hostname verification (for example with `openssl s_client -verify_return_error -verify_hostname HOST -servername HOST -connect HOST:443`). Check the Switch clock. Correct server-side incomplete chains at the server, not with client verification bypasses.
+5. Record failed-versus-successful evidence, the exact validation error where obtainable, and the resulting tested root-cause hypothesis. If the logs cannot prove it, state *undetermined* and prioritize instrumentation plus repeat capture over speculative trust-store changes. Keep the findings attached to the implementation PR.
 
-### Phase 2 — correct trust and keep verification strict
+### Phase 2 — apply only evidence-backed trust corrections; keep verification strict
 
 1. Centralize TLS configuration for `make_curl()`, `http_upload_handle_create()` and `http_download_handle_create()`. HTTPS must set `CURLOPT_SSL_VERIFYPEER=1L` and `CURLOPT_SSL_VERIFYHOST=2L`. Check all relevant `curl_easy_setopt` results and fail closed on configuration/import errors.
-2. Prefer the Switch system trust store when it validates the endpoint. Support a maintained, supplemental CA PEM at `sdmc:/switch/omnisave/cacert.pem` through `CURLOPT_CAINFO` if additional roots are required. Verify that this **particular libnx curl backend** can open and import the file from a sysmodule, whether it augments system roots, and its PKI/memory/size constraints. uNSS is a pattern, not proof that an unrestricted Mozilla PEM works on every Switch.
-3. If supported firmware roots are insufficient, package a maintained CA trust set with releases rather than relying on manual one-off fixes. Use an auditable source such as [curl's Mozilla CA extract](https://curl.se/docs/caextract.html), record version/source/update process, validate against the actual Switch backend, and include it in the SD-card release layout. If a full bundle is unsupported, choose and document an appropriately maintained, backend-compatible root set or update the TLS backend. Never silently truncate the bundle or treat an import failure as success.
-4. Define clear behavior for missing or malformed optional/required CA files. If a configured trust source cannot be loaded, fail with an explicit error rather than silently switching to insecure transport.
+2. Prefer the Switch system trust store when it validates the endpoint. **Only if Phase 1 demonstrates missing/outdated CA roots**, support a maintained, supplemental CA PEM at `sdmc:/switch/omnisave/cacert.pem` through `CURLOPT_CAINFO`. Verify that this **particular libnx curl backend** can open and import the file from a sysmodule, whether it augments system roots, and its PKI/memory/size constraints. uNSS is a pattern, not proof that an unrestricted Mozilla PEM works on every Switch.
+3. **Only if supported firmware roots are proven insufficient**, package a maintained CA trust set with releases rather than relying on manual one-off fixes. Use an auditable source such as [curl's Mozilla CA extract](https://curl.se/docs/caextract.html), record version/source/update process, validate against the actual Switch backend, and include it in the SD-card release layout. If a full bundle is unsupported, choose and document an appropriately maintained, backend-compatible root set or update the TLS backend. Never silently truncate the bundle or treat an import failure as success.
+4. If a bundle is introduced, define clear behavior for missing or malformed optional/required CA files. If a configured trust source cannot be loaded, fail with an explicit error rather than silently switching to insecure transport.
 5. Remove the insecure `verify_tls=0` recommendation from `dist/config.ini` and the generated template in `sysmodule/source/config.cpp`. An existing `verify_tls=0` must not turn off verification; reject or ignore it with a diagnostic and a migration note. Do not automatically downgrade HTTPS to HTTP.
 6. Do not pin the server leaf certificate (nor its changing fingerprint). A renewed leaf valid under a trusted CA and matching hostname must continue to work with no client update. Do not fetch trust anchors over an untrusted connection.
 
@@ -61,7 +69,7 @@ References:
 | --- | --- |
 | Valid public-CA dev HTTPS with correct hostname | Connection and sync succeed |
 | Renewed server leaf under the same trusted CA | Works unchanged, no pin update |
-| Newly trusted public root after maintained CA update | Works after supported trust-store refresh |
+| Newly trusted public root (if an updated CA store is proven necessary) | Works after supported trust-store refresh; no unneeded bundle deployed |
 | Wrong hostname | Hard TLS reject; explicit diagnostic |
 | Unknown CA/self-signed without deliberately trusted CA | Hard TLS reject; explicit diagnostic |
 | Expired/not-yet-valid certificate or incorrect clock | Hard TLS reject; explicit diagnostic |
@@ -82,4 +90,4 @@ Run Catch2/RapidCheck/mock coverage for classification and TLS-option setup, `do
 
 ## Proposal review decision
 
-Start with **hardware error capture + server chain inspection**. Make the smallest trust correction proven by the error, then ship centralized strict TLS options, meaningful failure classification, bundle maintenance only as needed, and end-to-end rejection/renewal tests. This PR documents the plan; it does **not** implement or validate the fix.
+Start with **failed-versus-successful attempt correlation** and exact TLS error capture, including verified hostname, TLS settings, clock, wake/resume and possible server-edge differences. A permanent CA-root deficiency is less likely given subsequent successful uploads. Do **not** change trust sources or upgrade libraries without evidence; fix transient state or backend initialization if that is what the investigation demonstrates. Then ship centralized strict TLS options, meaningful failure classification, and end-to-end rejection/renewal tests. CA bundle maintenance remains a conditional fallback, not a presumed fix. This PR documents the plan; it does **not** implement or validate the fix.
