@@ -337,3 +337,24 @@ If you find my tools useful please consider supporting via Patreon.
 OmniSaveSwitch is licensed under the [MIT License](LICENSE-MIT) — use, modify, and distribute freely.
 
 The server counterpart, [OmniSaveServer](https://github.com/kanjieater/OmniSaveServer), is licensed under AGPLv3.
+
+## Network diagnostics (test builds)
+
+A failed health check records the libcurl error code, TLS verification result when
+available, and a bounded error message in `switch/omnisave/network.log` on
+the SD card. A single rotated `network.log.1` retains older diagnostics; the
+file persists across sysmodule restarts. `NET_START` includes firmware,
+network initialization results, SSL backend, and a clock-validity indicator.
+
+To test, install a sysmodule build from the PR, restart the sysmodule, and
+confirm `NET_START` is present. Trigger a temporary network outage and a
+queued save; inspect `NET_PROBE_FAIL` without turning off certificate
+verification. Reconnect and verify the queued save uploads. For TLS-negative
+tests, use a **separate dev server** with an invalid certificate; a failed
+certificate check must not send save contents. Collect `network.log`,
+`network.log.1`, and `events.log` after a failure **before repeated restarts**.
+
+The current libnx-backed curl may not expose Horizon's precise certificate
+validation reason (`verify=-1` means unavailable). This patch adds the
+best diagnostics currently exposed by libcurl; it does **not** replace CA roots,
+reset networking services, or claim to fix an unknown TLS root cause.

@@ -76,7 +76,7 @@ extern "C" void svcExitProcess(void) {}
 
 // main.cpp helpers
 u64  get_posix_utc(void)                        { return g_mock_posix_utc; }
-bool wait_network_ready(void)                   { return g_mock_network_ready != 0; }
+bool wait_network_ready(FsFileSystem*)           { return g_mock_network_ready != 0; }
 bool get_title_name(u64, char* out, size_t sz)  { if (sz) out[0] = '\0'; return false; }
 void format_local_time(char* out, size_t, u64)  { if (out) out[0] = '\0'; }
 void make_ts_folder(char* out, size_t, u64)     { if (out) out[0] = '\0'; }

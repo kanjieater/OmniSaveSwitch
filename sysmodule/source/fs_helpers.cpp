@@ -52,6 +52,65 @@ void fs_log(FsFileSystem* fs, const char* fmt, ...) {
     fsFileClose(&file);
 }
 
+
+#define NET_LOG_PATH   OMNI_ROOT "/network.log"
+#define NET_LOG_PATH_1 OMNI_ROOT "/network.log.1"
+#define NET_LOG_MAX    131072 // separate 128 KiB history + one rotated copy
+
+void fs_network_log(FsFileSystem* fs, const char* fmt, ...) {
+    char line[320], ts[32];
+    // A broken wall clock must not stall diagnostics for 15 seconds.
+    u64 posix = 0;
+    if (R_FAILED(timeGetCurrentTime(TimeType_UserSystemClock, &posix)) ||
+            posix <= 1577836800ULL) posix = 0;
+    format_local_time(ts, sizeof(ts), posix);
+    u64 pid = 0;
+    svcGetProcessId(&pid, CUR_PROCESS_HANDLE);
+    int hdr = snprintf(line, sizeof(line), "[%s][%llu] ", ts,
+                       (unsigned long long)pid);
+    if (hdr < 0 || hdr >= (int)sizeof(line)) return;
+
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(line + hdr, sizeof(line) - (size_t)hdr, fmt, ap);
+    va_end(ap);
+
+    // A backend-provided error string cannot inject extra log records.
+    for (char* p = line; *p; p++)
+        if (*p == '\r' || *p == '\n') *p = ' ';
+    size_t len = strlen(line);
+    if (len >= sizeof(line) - 1) len = sizeof(line) - 2;
+    line[len++] = '\n';
+
+    FsFile file;
+    s64 size = 0;
+    if (R_FAILED(fsFsOpenFile(fs, NET_LOG_PATH,
+                             FsOpenMode_Write | FsOpenMode_Append, &file))) {
+        if (R_FAILED(fsFsCreateFile(fs, NET_LOG_PATH, 0, 0)) ||
+                R_FAILED(fsFsOpenFile(fs, NET_LOG_PATH,
+                    FsOpenMode_Write | FsOpenMode_Append, &file)))
+            return;
+    } else {
+        if (R_FAILED(fsFileGetSize(&file, &size))) {
+            fsFileClose(&file);
+            return;
+        }
+    }
+    if (size >= NET_LOG_MAX) {
+        fsFileClose(&file);
+        fsFsDeleteFile(fs, NET_LOG_PATH_1);
+        if (R_FAILED(fsFsRenameFile(fs, NET_LOG_PATH, NET_LOG_PATH_1)) ||
+                R_FAILED(fsFsCreateFile(fs, NET_LOG_PATH, 0, 0)) ||
+                R_FAILED(fsFsOpenFile(fs, NET_LOG_PATH,
+                    FsOpenMode_Write | FsOpenMode_Append, &file)))
+            return;
+        size = 0;
+    }
+    Result wr = fsFileWrite(&file, size, line, len, FsWriteOption_Flush);
+    fsFileClose(&file);
+    if (R_SUCCEEDED(wr)) fsFsCommit(fs);
+}
+
 void fs_write_text_file(FsFileSystem* fs, const char* path, const char* text) {
     const size_t len = strlen(text);
     FsFile file;

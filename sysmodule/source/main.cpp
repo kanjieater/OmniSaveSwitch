@@ -35,6 +35,8 @@ u64  s_save_data_id   = 0;
 u8   s_save_space_id  = 0;
 
 Result s_socket_init_rc = 0;
+static Result s_nifm_init_rc = 0;
+static CURLcode s_curl_init_rc = CURLE_OK;
 static Thread s_psc_thread;
 static Thread s_game_monitor_thread;
 
@@ -101,8 +103,8 @@ void __appInit(void) {
     };
     s_socket_init_rc = socketInitialize(&sock_cfg);
 
-    nifmInitialize(NifmServiceType_User);
-    curl_global_init(CURL_GLOBAL_DEFAULT);
+    s_nifm_init_rc = nifmInitialize(NifmServiceType_User);
+    s_curl_init_rc = curl_global_init(CURL_GLOBAL_DEFAULT);
 }
 
 void __appExit(void) {
@@ -189,12 +191,46 @@ void refresh_dns_servers(void) {
     memcpy(g_dns_servers, buf, sizeof(g_dns_servers));
 }
 
-bool wait_network_ready(void) {
+static const char* network_probe_class(CURLcode rc) {
+    switch (rc) {
+        case CURLE_COULDNT_RESOLVE_HOST:      return "dns";
+        case CURLE_COULDNT_CONNECT:           return "connect";
+        case CURLE_OPERATION_TIMEDOUT:        return "timeout";
+        case CURLE_PEER_FAILED_VERIFICATION:
+        case CURLE_SSL_CERTPROBLEM:           return "certificate";
+        case CURLE_SSL_CONNECT_ERROR:         return "tls_handshake";
+        case CURLE_OK:                        return "http_or_empty";
+        default:                              return "transport";
+    }
+}
+
+bool wait_network_ready(FsFileSystem* sd) {
     if (g_config.server_host[0] == '\0') return false;
+    if (R_FAILED(s_socket_init_rc) || s_curl_init_rc != CURLE_OK) {
+        snprintf(g_http_last_err, sizeof(g_http_last_err),
+                 "network init socket=0x%08lX curl=%d",
+                 (unsigned long)s_socket_init_rc, (int)s_curl_init_rc);
+        fs_network_log(sd, "NET_INIT_UNAVAILABLE %s", g_http_last_err);
+        return false;
+    }
+
     for (int i = 0; i < 10; i++) {
         refresh_dns_servers();
-        if (http_ping("/api/health") > 0) return true;
-        svcSleepThread(2000000000ULL);
+        int status = http_ping("/api/health");
+        if (status > 0) {
+            if (i > 0)
+                fs_network_log(sd, "NET_PROBE_RECOVERED attempts=%d http=%d",
+                               i + 1, status);
+            return true;
+        }
+        // Snapshot before another curl request can overwrite g_http_last_err.
+        fs_network_log(sd,
+                       "NET_PROBE_FAIL attempt=%d/10 class=%s curl=%d verify=%ld err=%.140s",
+                       i + 1, network_probe_class(g_http_last_code),
+                       (int)g_http_last_code, g_http_last_verify_result,
+                       g_http_last_err[0] ? g_http_last_err : "no HTTP response");
+        if (s_system_sleeping.load(std::memory_order_acquire)) break;
+        if (i < 9) svcSleepThread(2000000000ULL);
     }
     return false;
 }
@@ -273,6 +309,16 @@ static void setup(void) {
     fsFsCommit(&sd);
 
     config_load(&sd);
+    const curl_version_info_data* cv = (s_curl_init_rc == CURLE_OK)
+        ? curl_version_info(CURLVERSION_NOW) : NULL;
+    u64 clock_now = 0;
+    Result clock_rc = timeGetCurrentTime(TimeType_UserSystemClock, &clock_now);
+    fs_network_log(&sd,
+                   "NET_START fw=%s socket=0x%08lX nifm=0x%08lX curl_init=%d backend=%s clock_ok=%d",
+                   s_fw_version, (unsigned long)s_socket_init_rc,
+                   (unsigned long)s_nifm_init_rc, (int)s_curl_init_rc,
+                   (cv && cv->ssl_version) ? cv->ssl_version : "unknown",
+                   R_SUCCEEDED(clock_rc) && clock_now > 1577836800ULL ? 1 : 0);
     fs_log(&sd, "SERVER_URL %s://%s:%u paired=%s",
            g_config.server_scheme, g_config.server_host,
            (unsigned)g_config.server_port,
