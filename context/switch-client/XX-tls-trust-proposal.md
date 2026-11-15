@@ -6,18 +6,27 @@
 
 ## Current behavior and evidence
 
-### New observation: connection recovered without a known trust change
+### Rotated-log evidence: failure → restart → success (not demonstrated spontaneous recovery)
 
-- **User observed:** saves successfully uploaded **after** the network/TLS failure. This is evidence of eventual successful connectivity and weakens the hypothesis of a permanently missing CA root **if** those transfers used the same HTTPS hostname, active TLS verification, CA configuration, and certificate chain.
-- **Not yet established:** whether the successful upload used HTTPS with `verify_tls=1`, the same target hostname/remote endpoint and certificate chain, or whether the device clock, network path, process initialization, firmware, or server certificate changed in between. Verify these before drawing any trust-store conclusion. It is also possible the observed 'network' error came from a different cause than the earlier `bad_certificate` event.
-- **Working hypotheses, not conclusions:** temporary device clock drift, sleep/wake/resume or SSL initialization state, network-path/DNS change, different certificate chains from server edges, transient chain delivery, or a genuine trust-store issue. **Successful uploads do not prove which one occurred.**
-- **Decision:** diagnosis and error classification are first priority. **Do not ship a CA bundle or upgrade the TLS stack just because a `bad_certificate` event occurred.** Make trust-store changes only after a demonstrated validation-path problem.
+The user inspected `switch/omnisave/events.log.1` and reported this **November 5** sequence (log times; timezone not independently established):
+
+| Time | Observed event |
+| --- | --- |
+| 22:11–22:12 | Repeated `UPLOAD_FAIL no network` |
+| 22:13:22 | Startup sequence: sysmodule restarted |
+| 22:13:35 | Same queued save successfully uploaded: **1,761,224 bytes** |
+
+**What this establishes:** the queued save survived the failures and successfully uploaded **after a sysmodule restart**. It does **not** demonstrate that a continuously running sysmodule self-healed. A restart-dependent initialization/state issue is now a higher-priority hypothesis.
+
+**What it does not establish:** `UPLOAD_FAIL no network` is a generic outcome from `wait_network_ready()`, not the underlying curl/TLS reason. These particular attempts cannot be labeled certificate-validation failures on the basis of the rotated log alone. Any separately captured `bad_certificate` must be correlated by timestamp/request before treating it as the same fault. Verify whether both requests used identical HTTPS hostname, verification setting, CA store, certificate chain, device clock, and network route.
+
+**Decision:** preserve the curl/libnx error *at the connectivity probe*, diagnose restart-dependent TLS/socket/network state first, and only modify CA roots if investigation proves a trust-path deficiency. Do not ship a CA bundle or upgrade the TLS stack as a speculative repair.
 
 - `sysmodule/source/http.cpp` creates ordinary, upload, and download curl handles. Each sets `CURLOPT_SSL_VERIFYPEER` and `CURLOPT_SSL_VERIFYHOST` based on `g_config.verify_tls`. The configuration exposes an unsafe `verify_tls=0` escape hatch and no explicit trust-bundle selection.
 - `sysmodule/source/main.cpp::wait_network_ready()` retries `http_ping("/api/health")` ten times; any TLS rejection results in `false`. `sysmodule/source/fsm.cpp` can then label the condition `No Network — Will Retry`, conflating certificate trust and connectivity.
 - The build installs `switch-curl` (`sysmodule/Dockerfile`). Its devkitPro package is based on curl 7.69.1 with the **libnx SSL backend**, not an mbedTLS-powered curl backend. Linking separate mbedTLS libraries in `sysmodule/Makefile` does not upgrade curl's active TLS backend.
 - The devkitPro switch-curl patch maps underlying Horizon SSL verification errors to coarse curl errors. It calls `sslConnectionGetVerifyCertError()` inside the backend, but that detail is not consistently available at OmniSave's call sites. A bare `bad_certificate` or `CURLE_PEER_FAILED_VERIFICATION` does **not** identify the offending verification condition.
-- **Root cause is not yet proven.** An incomplete server chain, unsupported/missing root, outdated firmware trust store, clock, backend incompatibility, and a genuine invalid certificate are distinct possibilities. A persistent CA-root deficit is **less likely** after successful same-endpoint verified HTTPS, but not eliminated until the above controls are checked.
+- **Root cause is not yet proven.** A permanent CA-root deficit becomes less likely *if* the post-restart upload used the same verified HTTPS endpoint and trust settings. Restart-sensitive initialization, clock, DNS/socket state, server-side chain variation, and actual trust-store problems remain distinct hypotheses.
 
 References:
 - [OmniSave HTTP implementation](https://github.com/kanjieater/OmniSaveSwitch/blob/main/sysmodule/source/http.cpp)
@@ -30,11 +39,12 @@ References:
 
 ### Phase 1 — diagnose on actual hardware
 
-1. **Correlate actual failures with later successful uploads before changing settings.** From timestamped `events.log` and server access logs, identify the failed `/api/health` or upload attempt, next successful HTTPS upload, whether both used the same hostname, certificate chain and `verify_tls` setting, and any intervening sleep/wake, restart, network/DNS/remote-IP, clock adjustment, certificate renewal, or configuration change. Do not assume two events are the same failure type; preserve logs and redact secrets.
-2. Reproduce with the configured **dev HTTPS hostname** on a Switch if feasible (intermittent failures might not reproduce on demand). Record firmware version, curl version and active SSL backend (`curl_version_info`), TLS failure code, system clock/timezone accuracy, and relevant sleep/wake/SSL-init events without logging tokens.
-3. Obtain the backend's original verification result where possible. In `switch-curl`, `sslConnectionGetVerifyCertError()` is invoked when peer verification fails, but existing translation loses detail. If curl's error buffer and `CURLINFO_SSL_VERIFYRESULT` are insufficient or unsupported, apply a narrowly scoped, versioned backend patch to preserve the numeric libnx result and meaningful error text. Do not guess a diagnosis from `bad_certificate`.
-4. Independently inspect the dev endpoint's served chain, intermediates and hostname verification (for example with `openssl s_client -verify_return_error -verify_hostname HOST -servername HOST -connect HOST:443`). Check the Switch clock. Correct server-side incomplete chains at the server, not with client verification bypasses.
-5. Record failed-versus-successful evidence, the exact validation error where obtainable, and the resulting tested root-cause hypothesis. If the logs cannot prove it, state *undetermined* and prioritize instrumentation plus repeat capture over speculative trust-store changes. Keep the findings attached to the implementation PR.
+1. **Preserve the error at the connectivity check first.** Today `wait_network_ready()` retries `http_ping("/api/health")` and reports only a boolean, and `fsm.cpp` logs `UPLOAD_FAIL no network`. Capture the `curl_easy_perform` return code and bounded `CURLOPT_ERRORBUFFER` contents for each failed health probe **before subsequent retries, handle cleanup, or any call overwrites shared `g_http_last_err`**. Include attempt count, request type, sanitized hostname, timestamp, and TLS verification status, without bearer tokens. Distinguish network/DNS/connect, TLS handshake, certificate validation and HTTP failures. Report the first precise error and final outcome even if later probes succeed; do not infer TLS from generic no-network messages.
+2. **Use the already established November 5 sequence as the correlation anchor:** `events.log.1` reports repeated `UPLOAD_FAIL no network` at 22:11–22:12, sysmodule startup at 22:13:22, and a successful 1,761,224-byte upload of the same queued save at 22:13:35. Align server access logs, sysmodule/network lifecycle and any separate `bad_certificate` observation against this timeline. Verify hostname, certificate chain, `verify_tls`, device clock, DNS/remote IP, firmware, sleep/wake, and restart/SSL initialization effects. The restart must be treated as a possible causal change, not generic self-recovery.
+3. Reproduce with the configured **dev HTTPS hostname** on a Switch if feasible (intermittent failures might not reproduce on demand). Record firmware version, curl version and active SSL backend (`curl_version_info`), TLS failure code, system clock/timezone accuracy, and relevant sleep/wake/SSL-init events without logging tokens.
+4. Obtain the backend's original verification result where possible. In `switch-curl`, `sslConnectionGetVerifyCertError()` is invoked when peer verification fails, but existing translation loses detail. If curl's error buffer and `CURLINFO_SSL_VERIFYRESULT` are insufficient or unsupported, apply a narrowly scoped, versioned backend patch to preserve the numeric libnx result and meaningful error text. Do not guess a diagnosis from `bad_certificate`.
+5. Independently inspect the dev endpoint's served chain, intermediates and hostname verification (for example with `openssl s_client -verify_return_error -verify_hostname HOST -servername HOST -connect HOST:443`). Check the Switch clock. Correct server-side incomplete chains at the server, not with client verification bypasses.
+6. Record failed-versus-successful evidence, the exact validation error where obtainable, and the resulting tested root-cause hypothesis. If the logs cannot prove it, state *undetermined* and prioritize instrumentation plus repeat capture over speculative trust-store changes. Keep the findings attached to the implementation PR.
 
 ### Phase 2 — apply only evidence-backed trust corrections; keep verification strict
 
@@ -76,6 +86,7 @@ References:
 | Incomplete server chain | Reject unless a legitimate trusted path can be built; fix chain at server |
 | Missing/corrupted configured CA bundle | Explicit trust-configuration failure; no insecure fallback |
 | Network/DNS outage | Clearly not reported as certificate rejection; bounded retry |
+| Failed health check before restart, successful upload after restart | Preserve original probe failure, restart boundary and later success in logs; do not claim automatic recovery |
 | `verify_tls=0` in old config | Verification stays enabled or configuration rejects; never bypasses |
 | Mid-upload/download TLS failure and wake/retry | No data loss or injection; resumable per existing checkpoints |
 | Device bearer token / headers | Never leaked to diagnostic logs |
@@ -90,4 +101,4 @@ Run Catch2/RapidCheck/mock coverage for classification and TLS-option setup, `do
 
 ## Proposal review decision
 
-Start with **failed-versus-successful attempt correlation** and exact TLS error capture, including verified hostname, TLS settings, clock, wake/resume and possible server-edge differences. A permanent CA-root deficiency is less likely given subsequent successful uploads. Do **not** change trust sources or upgrade libraries without evidence; fix transient state or backend initialization if that is what the investigation demonstrates. Then ship centralized strict TLS options, meaningful failure classification, and end-to-end rejection/renewal tests. CA bundle maintenance remains a conditional fallback, not a presumed fix. This PR documents the plan; it does **not** implement or validate the fix.
+Start with **first-error preservation in `wait_network_ready()`** and the logged **November 5 failure → sysmodule restart → success** sequence. This is **not** evidence of spontaneous network recovery. Correlate the original health-probe curl result, verified hostname, TLS settings, clock, wake/resume, initialization state and possible server-edge differences. A permanent CA-root deficiency is less likely only if the successful upload used the same verified HTTPS trust path. Do **not** change trust sources or upgrade libraries without evidence; fix transient state or backend initialization if that is what the investigation demonstrates. Then ship centralized strict TLS options, meaningful failure classification, and end-to-end rejection/renewal tests. CA bundle maintenance remains a conditional fallback, not a presumed fix. This PR documents the plan; it does **not** implement or validate the fix.
