@@ -8,6 +8,8 @@
 #pragma GCC diagnostic ignored "-Wformat-truncation"
 
 char g_http_last_err[CURL_ERROR_SIZE] = {0};
+int g_http_last_code = (int)CURLE_OK;
+long g_http_last_verify_result = -1;
 
 // Session-scoped header lists — strictly one per CURL session, never shared.
 static struct curl_slist* s_upload_hdrs   = NULL;
@@ -130,7 +132,12 @@ static int progress_cb(void* p, curl_off_t dt, curl_off_t dn,
 
 static CURL* make_curl(const char* url, char errbuf[CURL_ERROR_SIZE]) {
     CURL* c = curl_easy_init();
-    if (!c) return NULL;
+    if (!c) {
+        g_http_last_code = CURLE_FAILED_INIT;
+        g_http_last_verify_result = -1;
+        snprintf(g_http_last_err, sizeof(g_http_last_err), "curl_easy_init failed");
+        return NULL;
+    }
     errbuf[0] = '\0';
     long tls_verify = (g_config.verify_tls && strcmp(g_config.server_scheme, "https") == 0) ? 1L : 0L;
     curl_easy_setopt(c, CURLOPT_URL,              url);
@@ -148,12 +155,19 @@ static CURL* make_curl(const char* url, char errbuf[CURL_ERROR_SIZE]) {
 
 static int finish_curl(CURL* c, char errbuf[CURL_ERROR_SIZE]) {
     CURLcode rc = curl_easy_perform(c);
+    g_http_last_code = rc;
+    long verify_result = -1;
+    if (curl_easy_getinfo(c, CURLINFO_SSL_VERIFYRESULT, &verify_result) != CURLE_OK)
+        verify_result = -1; // libnx curl may not expose native SSL verification details
+    g_http_last_verify_result = verify_result;
     long status = 0;
     if (rc == CURLE_OK) {
+        g_http_last_err[0] = '\0';
         curl_easy_getinfo(c, CURLINFO_RESPONSE_CODE, &status);
     } else {
         snprintf(g_http_last_err, sizeof(g_http_last_err),
-                 "curl: %s", errbuf[0] ? errbuf : curl_easy_strerror(rc));
+                 "curl=%d: %.220s", (int)rc,
+                 errbuf[0] ? errbuf : curl_easy_strerror(rc));
     }
     curl_easy_cleanup(c);
     return (int)status;

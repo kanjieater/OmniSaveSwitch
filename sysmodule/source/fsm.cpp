@@ -163,7 +163,8 @@ static void do_idle(FsFileSystem* sd, const InputSnapshot* snap) {
 
 static void do_downloading(FsFileSystem* sd, const InputSnapshot* snap) {
     (void)snap;
-    if (!wait_network_ready()) {
+    if (!wait_network_ready(sd)) {
+        fs_log(sd, "POLL_SKIP health err=%.160s", g_http_last_err);
         s_network_was_down = true;
         set_state(IDLE, sd);
         return;
@@ -218,10 +219,11 @@ static void do_uploading(FsFileSystem* sd, const InputSnapshot* snap) {
         return;
     }
 
-    if (!wait_network_ready()) {
-        fs_log(sd, "UPLOAD_FAIL no network key=%s", s_active_key);
-        notif_verbose("upload-fail", "No Network — Will Retry");
-        state_append_event(sd, "warning", "No Network — Will Retry");
+    if (!wait_network_ready(sd)) {
+        fs_log(sd, "UPLOAD_FAIL health key=%s err=%.140s",
+               s_active_key, g_http_last_err);
+        notif_verbose("upload-fail", "Server Connection Failed — Will Retry");
+        state_append_event(sd, "warning", "Server Connection Failed — Will Retry");
         s_retry_ticks = s_retry_delay;
         s_retry_delay = (s_retry_delay * 2 > 60) ? 60 : s_retry_delay * 2;
         set_state(RETRY_BACKOFF, sd);

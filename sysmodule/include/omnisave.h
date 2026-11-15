@@ -131,7 +131,7 @@ void make_ts_folder(char* out, size_t sz, u64 posix);
 bool get_title_name(u64 title_id, char* out, size_t sz);
 void title_label(u64 title_id, char* out, size_t sz);
 void refresh_dns_servers(void);
-bool wait_network_ready(void);
+bool wait_network_ready(FsFileSystem* sd);
 
 // ── crc32.cpp ─────────────────────────────────────────────────────────────────
 
@@ -143,6 +143,8 @@ uint32_t crc_run(uint32_t c, const void* d, size_t n);
 void fs_write_text_file(FsFileSystem* fs, const char* path, const char* text);
 bool fs_read_text_file(FsFileSystem* fs, const char* path, char* buf, size_t buf_sz);
 void fs_log(FsFileSystem* fs, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
+// Durable, bounded log independent of events.log rotation.
+void fs_network_log(FsFileSystem* fs, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
 void ensure_dir(FsFileSystem* fs, const char* path);
 void path_join(char* out, size_t sz, const char* dir, const char* name);
 bool copy_file(FsFileSystem* src_fs, const char* src_path,
@@ -161,6 +163,8 @@ void config_apply_device_suffix(char* buf, size_t buf_sz);
 // ── http.cpp ───────────────────────────────────────────────────────────────────
 
 extern char g_http_last_err[CURL_ERROR_SIZE];
+extern int g_http_last_code; // numeric CURLcode; host mocks need no curl enum
+extern long g_http_last_verify_result; // -1 if libcurl does not provide a result
 
 // Session-scoped handles — create once before window loop, reuse across windows, close after.
 CURL* http_upload_handle_create(void);
