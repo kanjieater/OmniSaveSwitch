@@ -8,7 +8,7 @@
 #pragma GCC diagnostic ignored "-Wformat-truncation"
 
 char g_http_last_err[CURL_ERROR_SIZE] = {0};
-CURLcode g_http_last_code = CURLE_OK;
+int g_http_last_code = (int)CURLE_OK;
 long g_http_last_verify_result = -1;
 
 // Session-scoped header lists — strictly one per CURL session, never shared.

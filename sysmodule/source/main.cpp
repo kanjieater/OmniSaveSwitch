@@ -191,7 +191,7 @@ void refresh_dns_servers(void) {
     memcpy(g_dns_servers, buf, sizeof(g_dns_servers));
 }
 
-static const char* network_probe_class(CURLcode rc) {
+static const char* network_probe_class(int rc) {
     switch (rc) {
         case CURLE_COULDNT_RESOLVE_HOST:      return "dns";
         case CURLE_COULDNT_CONNECT:           return "connect";

@@ -163,7 +163,7 @@ void config_apply_device_suffix(char* buf, size_t buf_sz);
 // ── http.cpp ───────────────────────────────────────────────────────────────────
 
 extern char g_http_last_err[CURL_ERROR_SIZE];
-extern CURLcode g_http_last_code;
+extern int g_http_last_code; // numeric CURLcode; host mocks need no curl enum
 extern long g_http_last_verify_result; // -1 if libcurl does not provide a result
 
 // Session-scoped handles — create once before window loop, reuse across windows, close after.
